@@ -31,5 +31,6 @@ Thumbs.db
 ########################
 .ipynb_checkpoints/
 data/
+processed_data/
 submission/
 docs/
