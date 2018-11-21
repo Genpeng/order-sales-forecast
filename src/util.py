@@ -6,8 +6,10 @@ Author: StrongXGP (xgp1227@gmail.com)
 Date:	2018/11/16
 """
 
+
 class Inspector:
-    def find_outliers(self, filepath):
+    @staticmethod
+    def find_outliers(filepath):
         with open(filepath, 'r', encoding='utf-8') as f:
             lines = f.read().splitlines()[1:]
         d, outliers = {}, []
@@ -20,8 +22,12 @@ class Inspector:
             else:
                 d[k] = v
         return outliers
-		
+
 
 def main():
-	inspector = Inspector()
-	print(inspector.find_outliers('../data/salescen-region.csv'))
+    # inspector = Inspector()
+    print(Inspector.find_outliers('../data/salescen-region.csv'))
+
+
+if __name__ == '__main__':
+    main()
