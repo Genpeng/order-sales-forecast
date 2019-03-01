@@ -23,8 +23,12 @@ items = pd.read_csv("../processed_data/item-info.csv", sep=',').set_index('item_
 centers = pd.read_csv("../processed_data/center-info.csv", sep=',').set_index('sales_cen_wid')
 
 sales = sales.drop_duplicates()  # 由于取数造成的重复
+sales = sales[sales['sales_cen_wid'] != -1]  # 删除销售中心不明的记录
 sales = sales[sales['creation_date'] <= '2018-08-31']  # 减少数据量
 sales.set_index(['sales_cen_wid', 'customer_wid', 'item_code', 'creation_date'], inplace=True)
+# sales = pd.read_csv(
+#     "../data/daily-sales-2.csv", sep=',', parse_dates=['creation_date']
+# ).set_index(['sales_cen_wid', 'customer_wid', 'item_code', 'creation_date'])
 
 sales['qty'] = sales['item_qty'] - sales['return_qty']
 sales['qty'] = np.log1p(sales['qty'])
@@ -118,8 +122,9 @@ def prepare_dataset(df, dt, is_train=True, name_prefix=None):
 print("[INFO] Preparing training data...")
 t0 = time()
 
-dt = date(2018, 5, 27)
-num_days = 6
+# dt = date(2018, 5, 27)
+dt = date(2018, 6, 3)
+num_days = 1
 X_l, y_l = [], []
 for i in range(num_days):
     delta = timedelta(days=7 * i)

@@ -14,7 +14,7 @@ class Inspector:
             lines = f.read().splitlines()[1:]
         d, outliers = {}, []
         for line in lines:
-            cols = line.split(',')
+            cols = line.split('\t')
             k, v = cols[0], cols[1]
             if k in d:
                 if v != d[k]:
@@ -26,7 +26,7 @@ class Inspector:
 
 def main():
     # inspector = Inspector()
-    print(Inspector.find_outliers('../data/salescen-region.csv'))
+    print(Inspector.find_outliers('../data/item-bd.txt'))
 
 
 if __name__ == '__main__':

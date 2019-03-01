@@ -60,3 +60,69 @@ SELECT 	item_code, organization_id AS bd_code, category_wid,
 FROM dw.dw_pub_item_category_rela AS dpi
 WHERE dpi.category_set_id = 3
 
+-- 零售数据（门店 -> 用户）
+SELECT 	period_id, bd_code, bd_name, sales_region_code, sales_region_name, 
+		region_code, region_name, terminal_code, terminal_name, 
+		terminal_type_code, terminal_type_name, sales_segment1_code, sales_segment1_name, 
+		sales_segment2_code, sales_segment2_name, item_code, item_name, 
+		freq_type_code, freq_type_name, customer_code, customer_name, 
+		customer_code2, customer_name2, sales_type, prodform, prodpos, 
+		brand_name, quantity, ou_name, top1500
+FROM dm.dm_sto_sales_dtl
+WHERE source_code = 'MMP'
+
+-- 查询
+SELECT * FROM DW.DWD_PL_SO_ORDER_F
+WHERE belong_to_customer_code = 'C0013060'
+
+-- 取分销数据（一级客户 -> 经销商）
+SELECT 	bd_code, bd_name, sales_cen_code, sales_cen_name, 
+		region_code, region_name, region_level2_name, region_level3_name, 
+		region_level4_name, item_code, item_name, is_wl, 
+		prod_type_code, prod_type_name, sales_segment1_code, sales_segment1_name, 
+		sales_segment2_code, sales_segment2_name, sell_customer_code, sell_customer_name, 
+		confirm_qty, submit_date, w_insert_dt, period_wid, obnd_bill_date, check_date
+FROM dm.dm_dom_chnl_inv_out_bill_dtl_d
+
+SELECT period_wid, submit_date, w_insert_dt, obnd_bill_date, check_date
+FROM dm.dm_dom_chnl_inv_out_bill_dtl_d
+
+SELECT DISTINCT bd_code, bd_name, sales_cen_code, sales_cen_name, 
+				sell_customer_code, sell_customer_name
+FROM dm.dm_dom_chnl_inv_out_bill_dtl_d
+WHERE sell_customer_code = 'C0004719'
+
+SELECT 	SUBSTR(obnd_bill_date, 1, 10) AS obnd_bill_date, bd_code, sales_cen_code, sell_customer_code, item_code, 
+		SUM(confirm_qty) AS qty
+FROM dm.dm_dom_chnl_inv_out_bill_dtl_d
+WHERE obnd_bill_date >= '2017-01-01'
+GROUP BY obnd_bill_date, bd_code, sales_cen_code, sell_customer_code, item_code
+ORDER BY obnd_bill_date ASC
+
+SELECT DISTINCT bd_code, item_code
+FROM dm.dm_dom_chnl_inv_out_bill_dtl_d
+
+-- 渠道库存
+SELECT 	w_insert_dt, period_wid, 
+        bd_code, bd_name, sales_cen_code, sales_cen_name, 
+		customer_code, customer_name, item_code, item_name, 
+		sales_segment1_code, sales_segment1_name, sales_segment2_code, sales_segment2_name, 
+		inv_cdde, inv_name, inv_type, is_logis, qty
+FROM dm.dm_dom_chnl_inv_anal_d
+
+SELECT  period_wid, bd_code, bd_name, sales_cen_code, sales_cen_name, 
+        customer_code, customer_name, customer_type, usable, is_cancel_customer, chnl_lvl, 
+        item_code, item_name, is_wl, 
+        inv_cdde, inv_name, inv_type, is_logis, qty
+FROM dm.dm_dom_chnl_inv_anal_d
+
+SELECT  period_wid, bd_code, bd_name, sales_cen_code, sales_cen_name, 
+        customer_code, customer_name, customer_type, usable, is_cancel_customer, chnl_lvl, 
+        item_code, item_name, is_wl, 
+        inv_cdde, inv_name, inv_type, is_logis, qty
+FROM dm.dm_dom_chnl_inv_anal_d
+WHERE period_wid >= 20180101
+ORDER BY period_wid
+
+
+
