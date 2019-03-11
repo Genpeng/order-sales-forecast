@@ -112,6 +112,9 @@ venv.bak/
 ehthumbs.db
 Thumbs.db
 
+# PyCharm ignore files
+.idea/
+
 # Project ignore files
 .ipynb_checkpoints/
 data/
