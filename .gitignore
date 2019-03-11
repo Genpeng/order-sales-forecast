@@ -103,7 +103,16 @@ venv.bak/
 # mypy
 .mypy_cache/
 
-# Project 
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Project ignore files
 .ipynb_checkpoints/
 data/
 docs/
