@@ -3,7 +3,7 @@
 """
 Some useful utility functions about pandas.
 
-Author: Genpeng Xu (xgp1227@gmail.com)
+Author: Genpeng Xu
 """
 
 import numpy as np
