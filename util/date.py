@@ -20,8 +20,11 @@ def get_days_of_month(year, month):
 
 def get_month(year, month, offset=-1):
     if month + offset <= 0:
-        month += 12 + offset
+        month = month + 12 + offset
         year -= 1
+    elif month + offset >= 13:
+        month = month + offset - 12
+        year += 1
     else:
         month += offset
     return year, month
@@ -59,12 +62,12 @@ def main():
     # print(get_pre_months(2019, 4))
 
     # 测试 get_month
-    # year, month = 2019, 4
-    # print(get_month(year, month, offset=-4))
-    # print(year, month)
+    year, month = 2019, 4
+    print(get_month(year, month, offset=-4))
+    print(get_month(2015, 9, offset=4))
 
     # 测试 get_curr_date
-    print(get_curr_date())
+    # print(get_curr_date())
 
 
 if __name__ == '__main__':
