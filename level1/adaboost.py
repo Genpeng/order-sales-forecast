@@ -3,7 +3,7 @@
 """
 Use decision tree to predict the order amounts of next two month.
 
-Author: Genpeng Xu (xgp1227@gmail.com)
+Author: Genpeng Xu
 """
 
 import numpy as np
