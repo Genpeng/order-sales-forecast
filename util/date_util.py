@@ -18,7 +18,7 @@ def get_days_of_month(year, month):
     return calendar.monthrange(year, month)[1]
 
 
-def get_month(year, month, offset=-1):
+def infer_month(year, month, offset=-1):
     if month + offset <= 0:
         month = month + 12 + offset
         year -= 1
@@ -62,9 +62,9 @@ def main():
     # print(get_pre_months(2019, 4))
 
     # 测试 get_month
-    year, month = 2019, 4
-    print(get_month(year, month, offset=-4))
-    print(get_month(2015, 9, offset=4))
+    year, month = 2019, 3
+    print(infer_month(year, month, offset=-4))
+    print(infer_month(2015, 9, offset=4))
 
     # 测试 get_curr_date
     # print(get_curr_date())

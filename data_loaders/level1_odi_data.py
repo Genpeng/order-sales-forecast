@@ -6,18 +6,24 @@ Prepare level1 data, including order, distribution and inventory.
 Author: Genpeng Xu
 """
 
+# Third-party libraries
 import numpy as np
 import pandas as pd
+from category_encoders import BinaryEncoder, OneHotEncoder
 from sklearn.preprocessing import LabelEncoder
-from util.date import *
-from util.feature import prepare_dataset
+
+# Own scaffolds
+from util.date_util import *
+from util.feature_util import prepare_dataset
+from bases.base_data_loader import BaseDataLoader
 
 
-class OdiData:
+class Level1OdiData(BaseDataLoader):
     """Order, distribution and inventory data."""
 
     def __init__(self, ord_path, dis_path, inv_path, categories):
-        self._curr_year, self._curr_month, self._curr_day = get_curr_date()
+        # self._curr_year, self._curr_month, self._curr_day = get_curr_date()
+        self._curr_year, self._curr_month, self._curr_day = 2019, 3, 10  # TODO: can be removed
         self._order = self._load_order_data(ord_path, categories)
         self._level1_order = self._prepare_level1_order()
         self._level1_dis = None
@@ -40,6 +46,8 @@ class OdiData:
         order = pd.read_csv(
             ord_path, sep=',', parse_dates=['order_date']
         ).rename(columns={'sales_class_1': 'category'})
+        order['ord_qty'] = order.ord_qty / 10000
+        order['ord_amount'] = order.ord_amount / 10000
         order = order.loc[order.category.isin(categories)]
         order = order.sort_values(by='order_date').reset_index(drop=True)
         order = order.loc[order.order_date >= '2015-09-01']  # 729144 -> 719861
@@ -53,9 +61,8 @@ class OdiData:
             level1 order data.
         """
         end_dt_str = '%d-%02d-%d' % (self._curr_year,
-                                     self._curr_month - 1,
-                                     get_days_of_month(self._curr_year, self._curr_month - 1))
-
+                                     self._curr_month,
+                                     get_days_of_month(self._curr_year, self._curr_month))
         # order amount per item per month
         order_cate_month = self._order.copy()
         order_cate_month['order_month'] = order_cate_month.order_date.astype('str').apply(lambda x: x[:7])
@@ -64,27 +71,31 @@ class OdiData:
         order_cate_month.columns = pd.date_range(start='2015-09-30', end=end_dt_str, freq='M')
         return order_cate_month
 
-    def _prepare_category_info(self, categories):
+    def _prepare_category_info(self, categories, encode_method='ordinal'):
         """
         Encode the category code, and return.
 
         Return:
             category information.
         """
-        # 对一级营销大类进行编码
         category = pd.DataFrame(categories, columns=['category'])
-
-        # 方法一：ordinal encoding
-        label_enc = LabelEncoder()
-        category['category_id'] = label_enc.fit_transform(category.category)
-        category.set_index('category', inplace=True)
-
-        # 方法二：binary encoding
-        # binary_enc = BinaryEncoder(cols=['category'])
-        # category_binary = binary_enc.fit_transform(category)
-        # category = pd.concat([category, category_binary], axis=1)
-        # category.set_index('category', inplace=True)
-
+        if encode_method == 'binary':
+            # binary encoding
+            binary_enc = BinaryEncoder(cols=['category'])
+            category_binary = binary_enc.fit_transform(category)
+            category = pd.concat([category, category_binary], axis=1)
+            category.set_index('category', inplace=True)
+        elif encode_method == 'onehot':
+            # onehot encoding
+            onehot_enc = OneHotEncoder(cols=['category'])
+            category_onehot = onehot_enc.fit_transform(category)
+            category = pd.concat([category, category_onehot], axis=1)
+            category.set_index('category', inplace=True)
+        else:
+            # ordinal encoding (Default)
+            label_enc = LabelEncoder()
+            category['category_id'] = label_enc.fit_transform(category.category)
+            category.set_index('category', inplace=True)
         category = category.reindex(self._level1_order.index)
         return category
 
@@ -102,12 +113,13 @@ class OdiData:
         cate_aver_price = cate_aver_price.reindex(self._level1_order.index)
         return cate_aver_price
 
-    def prepare_data_for_predict(self, periods=4):
+    def prepare_data_for_predict(self, periods=4, left_bound='2016-01'):
         """
         Prepare data for predicting.
 
         Arguments:
             periods : int, the length to predict
+            left_bound : str (format: 'year-month'), first date to extract features
 
         Return:
             X_train : the features of training data
@@ -115,10 +127,12 @@ class OdiData:
             X_test : the features of test data
         """
         # prepare training data
-        year_upper_bound, month_upper_bound = get_month(self._curr_year,
-                                                        self._curr_month,
-                                                        offset=-periods)
-        train_pairs = get_pre_months(year_upper_bound, month_upper_bound, left_bound='2016-01')
+        year_upper_bound, month_upper_bound = infer_month(self._curr_year,
+                                                          self._curr_month,
+                                                          offset=-(periods+1))
+        train_pairs = get_pre_months(year_upper_bound,
+                                     month_upper_bound,
+                                     left_bound=left_bound)
         X_l, y_l = [], []
         for pair in train_pairs:
             y, m = int(pair.split('-')[0]), int(pair.split('-')[1])
@@ -153,14 +167,25 @@ class OdiData:
                             self._cate_aver_price.reset_index(drop=True)], axis=1)
         return X_train, y_train, X_test
 
+    def get_start_pred_date(self):
+        return self._curr_year, self._curr_month, self._curr_day
+
+    @property
+    def order(self):
+        return self._order
+
+    @property
+    def level1_order(self):
+        return self._level1_order
+
 
 def main():
     ord_path = "../data/level2/m111-sku-order-all-final.csv"
     dis_path = None
     inv_path = None
     categories = ['CRZJ', 'CRXDG', 'CRYJ', 'JSJ', 'YSJ', 'RR', 'DR', 'CRXWJ']
-    odi_data = OdiData(ord_path, dis_path, inv_path, categories)
-    X_train, y_train, X_test = odi_data.prepare_data_for_predict(4)
+    odi_data = Level1OdiData(ord_path, dis_path, inv_path, categories)
+    X_train, y_train, X_test = odi_data.prepare_data_for_predict(4, left_bound='2016-04')
     print(X_train.shape)
     print(y_train.shape)
     print(X_test.shape)

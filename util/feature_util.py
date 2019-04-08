@@ -79,16 +79,16 @@ def prepare_dataset(order, dis, inv, year, month, periods=1, is_train=True, name
     X = {}
 
     # 提货的统计特征
-    # for i in [3]:
-    #     dt = date(year, month, 1)
-    #     tmp = order[pd.date_range(end=dt, periods=i, freq='M')]  # 前i个月提货量
-    #     X['ord_diff_mean_pre_%s' % i] = tmp.diff(axis=1).mean(axis=1).values  # 前i个月提货量的平均一阶差分
-    #     X['ord_sum_decay_pre_%s' % i] = (tmp * np.power(0.9, np.arange(i)[::-1])).sum(axis=1).values  # 前i个月提货量的和（带衰减）
-    #     X['ord_mean_pre_%s' % i] = tmp.mean(axis=1).values  # 前i个月提货量的平均值
-    #     X['ord_median_pre_%s' % i] = tmp.median(axis=1).values  # 前i个月提货量的中位数
-    #     X['ord_max_pre_%s' % i] = tmp.max(axis=1).values  # 前i个月提货量的最大值
-    #     X['ord_min_pre_%s' % i] = tmp.min(axis=1).values  # 前i个月提货量的最小值
-    #     X['ord_std_pre_%s' % i] = tmp.std(axis=1).values  # 前i个月提货量的标准差
+    for i in [3, 6]:
+        dt = date(year, month, 1)
+        tmp = order[pd.date_range(end=dt, periods=i, freq='M')]  # 前i个月提货量
+        X['ord_diff_mean_pre_%s' % i] = tmp.diff(axis=1).mean(axis=1).values  # 前i个月提货量的平均一阶差分
+        X['ord_sum_decay_pre_%s' % i] = (tmp * np.power(0.9, np.arange(i)[::-1])).sum(axis=1).values  # 前i个月提货量的和（带衰减）
+        X['ord_mean_pre_%s' % i] = tmp.mean(axis=1).values  # 前i个月提货量的平均值
+        X['ord_median_pre_%s' % i] = tmp.median(axis=1).values  # 前i个月提货量的中位数
+        X['ord_max_pre_%s' % i] = tmp.max(axis=1).values  # 前i个月提货量的最大值
+        X['ord_min_pre_%s' % i] = tmp.min(axis=1).values  # 前i个月提货量的最小值
+        X['ord_std_pre_%s' % i] = tmp.std(axis=1).values  # 前i个月提货量的标准差
 
     # 分销的统计特征
     # for i in [3]:
@@ -114,8 +114,9 @@ def prepare_dataset(order, dis, inv, year, month, periods=1, is_train=True, name
     #     X['inv_min_pre_%s' % i] = tmp.min(axis=1).values  # 前i个月库存量的最小值
     #     X['inv_std_pre_%s' % i] = tmp.std(axis=1).values  # 前i个月库存量的标准差
 
-    # 前3个月的提货量
-    for i in range(1, 4):
+    # 前6个月的提货量
+    # 备注：如果修改了时间长度，需要相应修改 OdiData 的 prepare_data_for_predict 中的 left_bound
+    for i in range(1, 6):
         if month - i <= 0:
             start_dt = date(year - 1, month + 12 - i, 1)
         else:

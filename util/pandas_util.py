@@ -31,4 +31,3 @@ def row_restore(df_normalized, scalers):
         scaler = scalers[rn]
         df_bak.loc[rn] = scaler.inverse_transform(df_bak.loc[rn].values.reshape(-1, 1)).ravel()
     return df_bak
-
