@@ -129,3 +129,4 @@ sql/
 temp/
 reference_codes/
 ipython/
+log/
