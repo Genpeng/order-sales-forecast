@@ -21,7 +21,8 @@ def get_config_from_json(json_file):
 
     Return:
         config : Bunch, an attribute-style dictionary object
-        config_dict : dict, a dictionary
+        config_dict : dict, a dictionary whose elements represent the names and its corresponding
+                      values of configurations
     """
     with open(json_file, 'r') as config_file:
         config_dict = json.load(config_file)
@@ -34,22 +35,23 @@ def process_config(json_file):
     return config
 
 
-def get_train_args():
-    parser = argparse.ArgumentParser(description="Get the path of training configuration file.")
+def get_args():
+    parser = argparse.ArgumentParser(description="Get the path of configuration file.")
     parser.add_argument('-c', '--config',
                         dest='config',
                         metavar='config_path',
                         default='None',
-                        help='add a configuration file')
+                        help="Specify the path to the configuration file.")
     args = parser.parse_args()
     return args, parser
 
 
 def main():
     print("[INFO] Start parsing configuration file...")
+
     parser, config = None, None
     try:
-        args, parser = get_train_args()  # get the path of configuration file
+        args, parser = get_args()  # get the path of configuration file
         config = process_config(args.config)
     except Exception as e:
         print(e)
@@ -57,7 +59,8 @@ def main():
             parser.print_help()
         exit(0)
 
-    print(config.exp_name)
+    print(config.learning_rate)
+    print(type(config.learning_rate))
 
 
 if __name__ == '__main__':

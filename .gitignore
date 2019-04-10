@@ -124,3 +124,8 @@ processed_data/
 project_docs/
 result/
 submission/
+src/
+sql/
+temp/
+reference_codes/
+ipython/

@@ -21,17 +21,19 @@ from bases.base_data_loader import BaseDataLoader
 class Level1OdiData(BaseDataLoader):
     """Order, distribution and inventory data."""
 
-    def __init__(self, ord_path, dis_path, inv_path, categories):
-        # self._curr_year, self._curr_month, self._curr_day = get_curr_date()
-        self._curr_year, self._curr_month, self._curr_day = 2019, 3, 10  # TODO: can be removed
-        self._order = self._load_order_data(ord_path, categories)
+    def __init__(self, start_pred_year, start_pred_month, start_pred_day, categories):
+        self._start_pred_year = start_pred_year
+        self._start_pred_month = start_pred_month
+        self._start_pred_day = start_pred_day
+        self._all_categories = categories
+        self._order = self._load_order_data(categories)
         self._level1_order = self._prepare_level1_order()
         self._level1_dis = None
         self._level1_inv = None
         self._category_info = self._prepare_category_info(categories)
         self._cate_aver_price = self._calc_cate_aver_price()
 
-    def _load_order_data(self, ord_path, categories):
+    def _load_order_data(self, categories):
         """
         Load order data.
         TODO: modify to load from database
@@ -43,14 +45,16 @@ class Level1OdiData(BaseDataLoader):
         Return:
              order data.
         """
+        ord_path = "../data/level2/m111-sku-order-all-final.csv"
         order = pd.read_csv(
             ord_path, sep=',', parse_dates=['order_date']
         ).rename(columns={'sales_class_1': 'category'})
+        order = order.loc[order.category.isin(categories)]
+        end_dt_str = "%d-%02d-%02d" % (self._start_pred_year, self._start_pred_month, self._start_pred_day)
+        order = order.loc[(order.order_date >= '2015-09-01') & (order.order_date <= end_dt_str)]
+        order = order.sort_values(by='order_date').reset_index(drop=True)
         order['ord_qty'] = order.ord_qty / 10000
         order['ord_amount'] = order.ord_amount / 10000
-        order = order.loc[order.category.isin(categories)]
-        order = order.sort_values(by='order_date').reset_index(drop=True)
-        order = order.loc[order.order_date >= '2015-09-01']  # 729144 -> 719861
         return order
 
     def _prepare_level1_order(self):
@@ -60,9 +64,9 @@ class Level1OdiData(BaseDataLoader):
         Return:
             level1 order data.
         """
-        end_dt_str = '%d-%02d-%d' % (self._curr_year,
-                                     self._curr_month,
-                                     get_days_of_month(self._curr_year, self._curr_month))
+        end_dt_str = '%d-%02d-%d' % (self._start_pred_year,
+                                     self._start_pred_month,
+                                     get_days_of_month(self._start_pred_year, self._start_pred_month))
         # order amount per item per month
         order_cate_month = self._order.copy()
         order_cate_month['order_month'] = order_cate_month.order_date.astype('str').apply(lambda x: x[:7])
@@ -127,8 +131,8 @@ class Level1OdiData(BaseDataLoader):
             X_test : the features of test data
         """
         # prepare training data
-        year_upper_bound, month_upper_bound = infer_month(self._curr_year,
-                                                          self._curr_month,
+        year_upper_bound, month_upper_bound = infer_month(self._start_pred_year,
+                                                          self._start_pred_month,
                                                           offset=-(periods+1))
         train_pairs = get_pre_months(year_upper_bound,
                                      month_upper_bound,
@@ -158,17 +162,14 @@ class Level1OdiData(BaseDataLoader):
         X_test = prepare_dataset(self._level1_order,
                                  None,
                                  None,
-                                 self._curr_year,
-                                 self._curr_month,
+                                 self._start_pred_year,
+                                 self._start_pred_month,
                                  periods=periods,
                                  is_train=False)
         X_test = pd.concat([X_test,
                             self._category_info.reset_index(drop=True),
                             self._cate_aver_price.reset_index(drop=True)], axis=1)
         return X_train, y_train, X_test
-
-    def get_start_pred_date(self):
-        return self._curr_year, self._curr_month, self._curr_day
 
     @property
     def order(self):
