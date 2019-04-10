@@ -40,6 +40,7 @@ class BaseInfer:
             )
         else:
             raise Exception("[ERROR] Please check the model name!")
+        return estimator
 
     def infer_future(self, X_train, y_train, X_test, periods):
         raise NotImplementedError
