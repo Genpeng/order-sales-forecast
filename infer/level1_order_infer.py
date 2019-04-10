@@ -13,7 +13,7 @@ from datetime import date
 from sklearn.metrics import mean_squared_error
 
 # Own customized modules
-from bases.base_infer import BaseInfer
+from base.base_infer import BaseInfer
 from util.metric_util import acc, mean_absolute_percent_error
 
 

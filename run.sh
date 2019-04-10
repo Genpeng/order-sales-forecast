@@ -1,0 +1,1 @@
+nohup python -u level1_order.py -c configs/config_example.json > log/level1_order 2>&1 &
