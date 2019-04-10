@@ -45,7 +45,7 @@ class Level1OdiData(BaseDataLoader):
         Return:
              order data.
         """
-        ord_path = "../data/level2/m111-sku-order-all-final.csv"
+        ord_path = "data/level2/m111-sku-order-all-final.csv"
         order = pd.read_csv(
             ord_path, sep=',', parse_dates=['order_date']
         ).rename(columns={'sales_class_1': 'category'})
@@ -171,6 +171,22 @@ class Level1OdiData(BaseDataLoader):
                             self._cate_aver_price.reset_index(drop=True)], axis=1)
         return X_train, y_train, X_test
 
+    def get_cate_order(self, start_dt_str, end_dt_str):
+        """
+        Calculate the order quantity in a certain period.
+
+        Arguments:
+            start_dt_str : str (format: year-month-day), the start date
+            end_dt_str : str (format: year-month-day), the end date
+        
+        Return:
+            ret : DataFrame, the order quantity in a certain period
+        """
+        order_m = self._order.loc[(self._order.order_date >= start_dt_str) & (self._order.order_date <= end_dt_str)]
+        order_m['order_date'] = '%d-%02d' % (start_pred_year, start_pred_month)
+        order_m = order_m.groupby(['category', 'order_date'])[['ord_qty']].sum()
+        order_m.rename(columns={'ord_qty': 'act_ord_qty'})
+
     @property
     def order(self):
         return self._order
@@ -178,6 +194,14 @@ class Level1OdiData(BaseDataLoader):
     @property
     def level1_order(self):
         return self._level1_order
+
+    @property
+    def category_info(self):
+        return self._category_info
+
+    @property
+    def cate_aver_price(self):
+        return self._cate_aver_price
 
 
 def main():

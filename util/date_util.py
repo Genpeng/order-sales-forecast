@@ -6,15 +6,21 @@ Some utility functions about date.
 Author: Genpeng Xu
 """
 
+import time
+import calendar
+import datetime
+
+
+def timestamp_to_time(timestamp):
+    return time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(timestamp))
+
 
 def get_curr_date():
-    import datetime
     curr_date = datetime.datetime.now()
     return curr_date.year, curr_date.month, curr_date.day
 
 
 def get_days_of_month(year, month):
-    import calendar
     return calendar.monthrange(year, month)[1]
 
 
@@ -62,12 +68,15 @@ def main():
     # print(get_pre_months(2019, 4))
 
     # 测试 get_month
-    year, month = 2019, 3
-    print(infer_month(year, month, offset=-4))
-    print(infer_month(2015, 9, offset=4))
+    # year, month = 2019, 3
+    # print(infer_month(year, month, offset=-4))
+    # print(infer_month(2015, 9, offset=4))
 
     # 测试 get_curr_date
     # print(get_curr_date())
+
+    # 测试 timestamp_to_time
+    print(timestamp_to_time(time.time()))
 
 
 if __name__ == '__main__':

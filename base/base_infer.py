@@ -34,7 +34,7 @@ class BaseInfer:
         elif config.model == 'adaboost':
             estimator = AdaBoostRegressor(
                 base_estimator=DecisionTreeRegressor(max_depth=config.max_depth, random_state=rng),
-                n_estimators=config.n_estimator,
+                n_estimators=config.n_estimators,
                 learning_rate=config.learning_rate,
                 random_state=rng
             )

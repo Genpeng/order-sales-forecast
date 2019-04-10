@@ -14,6 +14,7 @@ from sklearn.metrics import mean_squared_error
 
 # Own customized modules
 from base.base_infer import BaseInfer
+from util.date_util import timestamp_to_time
 from util.metric_util import acc, mean_absolute_percent_error
 
 
@@ -31,6 +32,7 @@ class Level1OrderInfer(BaseInfer):
             print('# ' + '=' * 100 + ' #')
             print('# ' + 'Step %d' % i + ' ' * (100 - len('Step %d' % i)) + ' #')
             print('# ' + '=' * 100 + ' #')
+            print("[INFO] Current time:", timestamp_to_time(time.time()))
 
             # Add previous predictions as a new feature
             if preds_train:
@@ -69,10 +71,10 @@ class Level1OrderInfer(BaseInfer):
             feat_imps = sorted(zip(X_train.columns, self._estimator.feature_importances_),
                                key=lambda x: x[1], reverse=True)
             print("The feature importances are as follow: ")
-            print('\n'.join('%s: %s' % (feat_name, feat_imp) for feat_name, feat_imp in feat_imps))
+            print('\n'.join("%s: %s" % (feat_name, feat_imp) for feat_name, feat_imp in feat_imps))
 
         print()
-        print("[INFO] Finished! ( ^ _ ^ ) V")
+        print("[INFO] Training and predicting finished! ( ^ _ ^ ) V")
         print("[INFO] Done in %f seconds." % (time.time() - t0))
 
         return preds_test, feat_imps
