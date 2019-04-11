@@ -28,7 +28,7 @@ python -c configs/level1_config.json level1_order.py
 
 ## 代码结构说明
 
-将代码按照功能进行划分，主要分为 **<u>6</u>** 个部分，分别为数据加载类（`DataLoader`）、模型类（`Logger`）、日志类（`Logger`）、训练类（`Trainer`）、预测/推理类（`Infer`）以及结果写入类（`ResultWriter`），它们之间的层级关系如下图所示，
+将代码按照功能进行划分，主要分为 **<u>6</u>** 个部分，分别为数据加载类（`DataLoader`）、模型类（`Model`）、日志类（`Logger`）、训练类（`Trainer`）、预测/推理类（`Infer`）以及结果写入类（`ResultWriter`），它们之间的层级关系如下图所示，
 
 <img src='./figs/code_struc.png' weight=100>
 
