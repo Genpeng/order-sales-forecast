@@ -119,7 +119,6 @@ Thumbs.db
 .ipynb_checkpoints/
 data/
 docs/
-figs/
 processed_data/
 project_docs/
 result/
