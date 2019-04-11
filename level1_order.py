@@ -1,7 +1,8 @@
 # _*_ coding: utf-8 _*_
 
 """
-Use decision tree to predict the order amounts of the next few months.
+Predict the order amounts of the next few months by using machine learning or
+deep learning algorithms.
 
 Author: Genpeng Xu
 """
@@ -45,7 +46,7 @@ def main():
 
     categories = config.categories.split(',')
     # start_pred_year, start_pred_month, start_pred_day = get_curr_date()
-    start_pred_year, start_pred_month, start_pred_day = 2019, 3, 10
+    start_pred_year, start_pred_month, start_pred_day = 2019, 3, 10  # TODO: will be removed
     periods = 4 if start_pred_month + 4 <= 12 else 12 - start_pred_month
 
     # prepare data
@@ -126,12 +127,12 @@ def main():
     result_root_dir = "results"
     if not os.path.exists(result_root_dir):
         os.mkdir(result_root_dir)
-    file_name = "level1_order_%s_%d%02d%02d_%d.txt" % (config.model,
-                                                       start_pred_year,
-                                                       start_pred_month,
-                                                       start_pred_day,
-                                                       time.time())
-    result_path = os.path.join(result_root_dir, file_name)
+    filename = "level1_order_%s_%d%02d%02d_%d.txt" % (config.model,
+                                                      start_pred_year,
+                                                      start_pred_month,
+                                                      start_pred_day,
+                                                      time.time())
+    result_path = os.path.join(result_root_dir, filename)
     result.to_csv(result_path, sep=',', index=None)
 
     print("[INFO] Saving finished!")
