@@ -115,6 +115,9 @@ Thumbs.db
 # PyCharm ignore files
 .idea/
 
+# VSCode ignore files
+.vscode/
+
 # Project ignore files
 .ipynb_checkpoints/
 data/
