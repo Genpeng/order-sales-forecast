@@ -28,7 +28,8 @@ def main():
 
     db_config = UatDbConfig()
     writer = Level3InvWriter(db_config)
-    writer.clear("level3_customer_pred_result")
+    table_name = "level3_customer_pred_result"
+    writer.clear(table_name)
 
 
 if __name__ == '__main__':
