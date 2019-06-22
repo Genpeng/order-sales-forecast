@@ -2,6 +2,8 @@
 """
 All the global variables needed for this project.
 
+TODO: 不同环境的数据库配置可以更加优雅一点！
+
 Author: Genpeng Xu
 """
 
@@ -24,6 +26,26 @@ INV_DATA_COLUMN_NAMES = [
     'first_cate_name', 'second_cate_code', 'second_cate_name', 'inv_qty',
     'inv_amount', 'item_price'
 ]
+
+
+class SitDbConfig:
+    def __init__(self):
+        self.host = '10.18.25.92'
+        self.port = 31051
+        self.database = 'ai_orders_predict'
+        self.auth_mechanism = 'PLAIN'
+        self.user = 'aiop_bind'
+        self.password = '1Ye8Xl1Td0'
+
+
+class UatDbConfig:
+    def __init__(self):
+        self.host = '10.18.25.92'
+        self.port = 21051
+        self.database = 'ai_orders_predict'
+        self.auth_mechanism = 'PLAIN'
+        self.user = 'aiop_bind'
+        self.password = '1Ye8Xl1Td0'
 
 
 def main():

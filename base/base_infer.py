@@ -10,6 +10,7 @@ Author: Genpeng Xu
 import numpy as np
 from sklearn.tree import DecisionTreeRegressor
 from sklearn.ensemble import RandomForestRegressor, GradientBoostingRegressor, AdaBoostRegressor
+from lightgbm.sklearn import LGBMRegressor
 
 
 class BaseInfer:
@@ -38,9 +39,22 @@ class BaseInfer:
                 learning_rate=config.learning_rate,
                 random_state=rng
             )
+        elif config.model == 'lightgbm':
+            estimator = LGBMRegressor(num_leaves=config.num_leaves,
+                                      learning_rate=config.learning_rate,
+                                      objective=config.objective,
+                                      random_state=config.random_state,
+                                      n_jobs=config.n_jobs,
+                                      # key word parameters
+                                      num_iterations=config.num_iterations,
+                                      min_data_in_leaf=config.min_data_in_leaf,
+                                      feature_fraction=config.feature_fraction,
+                                      bagging_fraction=config.bagging_fraction,
+                                      bagging_freq=config.bagging_freq,
+                                      metric=config.metric)
         else:
             raise Exception("[ERROR] Please check the model name!")
         return estimator
 
-    def infer_future(self, X_train, y_train, X_test, periods):
+    def predict_future(self, X_train, y_train, X_test, periods):
         raise NotImplementedError

@@ -1,7 +1,7 @@
 # _*_ coding: utf-8 _*_
 
 """
-Level1 infer class.
+Level3 inventory predictor.
 
 Author: Genpeng Xu
 """
@@ -18,9 +18,41 @@ from util.date_util import timestamp_to_time
 from util.metric_util import acc, mean_absolute_percent_error
 
 
-class Level1OrderInfer(BaseInfer):
+class Level3InvInfer(BaseInfer):
     def __init__(self, config):
         super().__init__(config)
+
+    def predict(self, X_train, y_train, X_test):
+        print("[INFO] Start training and predicting...")
+        t0 = time.time()
+
+        print("[INFO] Fitting the model...")
+        self._estimator.fit(X_train, y_train,
+                            eval_set=[(X_train, y_train)],
+                            eval_names=['train'],
+                            verbose=True)
+
+        pred_train = self._estimator.predict(X_train, num_iteration=self._config.num_iterations)
+        pred_test = self._estimator.predict(X_test, num_iteration=self._config.num_iterations)
+
+        # Calculate MAPE
+        mape_train = mean_absolute_percent_error(y_train, pred_train)
+        print("[INFO] mape_train: %.4f" % mape_train)
+
+        # Calculate MSE
+        rmse_train = mean_squared_error(y_train, pred_train) ** 0.5
+        print("[INFO] rmse_train: %.4f" % rmse_train)
+
+        # Feature importances
+        feat_imps = sorted(zip(X_train.columns, self._estimator.feature_importances_),
+                           key=lambda x: x[1], reverse=True)
+        print("\nThe feature importances are as follow: ")
+        print('\n'.join('%s: %s' % (feat_name, feat_imp) for feat_name, feat_imp in feat_imps))
+
+        print()
+        print("[INFO] Finished! ( ^ _ ^ ) V")
+        print("[INFO] Done in %f seconds." % (time.time() - t0))
+        return pred_test, feat_imps
 
     def predict_future(self, X_train, y_train, X_test, periods=4):
         print("[INFO] Start training and predicting...")
@@ -57,11 +89,11 @@ class Level1OrderInfer(BaseInfer):
 
             # Calculate MAPE
             mape_train = mean_absolute_percent_error(y_train[:, i], pred_train)
-            print("[INFO] The MAPE of training set is: %.4f" % (mape_train))
+            print("[INFO] The MAPE of training set is: %.4f" % mape_train)
 
             # Calculate MSE
             mse_train = mean_squared_error(y_train[:, i], pred_train)
-            print("[INFO] The MSE of training set is: %.4f" % (mse_train))
+            print("[INFO] The MSE of training set is: %.4f" % mse_train)
 
             # Store the intermediate results
             preds_train.append(pred_train)

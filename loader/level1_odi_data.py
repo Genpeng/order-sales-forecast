@@ -9,16 +9,16 @@ Author: Genpeng Xu
 # Third-party libraries
 import numpy as np
 import pandas as pd
-from category_encoders import BinaryEncoder, OneHotEncoder
+# from category_encoders import BinaryEncoder, OneHotEncoder
 from sklearn.preprocessing import LabelEncoder
 
 # Own scaffolds
 from util.date_util import *
-from util.feature_util import prepare_dataset
-from base.base_data_loader import BaseDataLoader
+from util.feature_util import prepare_training_set, prepare_testing_set
+from base.base_loader import BaseLoader
 
 
-class Level1OdiData(BaseDataLoader):
+class Level1OdiData(BaseLoader):
     """Order, distribution and inventory data."""
 
     def __init__(self, start_pred_year, start_pred_month, start_pred_day, categories):

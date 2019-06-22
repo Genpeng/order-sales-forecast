@@ -11,10 +11,10 @@ import pandas as pd
 from sklearn.preprocessing import LabelEncoder
 
 # Own Customized modules
-from util.feature_util import *
+from global_vars import INV_DATA_DIR, INV_DATA_COLUMN_NAMES
 from util.data_util import transform_channel
 from util.date_util import get_curr_date, get_days_of_month
-from global_vars import INV_DATA_DIR, INV_DATA_COLUMN_NAMES
+from util.feature_util import prepare_training_set, prepare_val_set, prepare_testing_set
 
 
 class Level3InvData:
@@ -25,21 +25,27 @@ class Level3InvData:
         self._inv_data_path = self._get_data_path()
         self._inv = self._load_inv_data(categories, need_unitize)
         self._inv_cus_sku_month = self._get_inv_data_per_cus_sku()  # 得到每个代理商每个SKU每个月库存
+        self._index = self._inv_cus_sku_month.index
         self._customer_info, self._customer_info_encoded = self._get_cus_info()  # 得到代理商的信息
         self._sku_info, self._sku_info_encoded = self._get_sku_info()  # 得到SKU的信息
         self._inv_sku_month = self._get_inv_data_per_sku()  # 得到每个SKU每个月的库存
         self._inv_cus_cate1_month = self._get_inv_data_per_cus_cate1()  # 得到每个代理商每个大类的库存
         self._inv_cus_cate2_month = self._get_inv_data_per_cus_cate2()  # 得到每个代理商每个小类的库存
+        self._inv_cus_chan_month = self._get_inv_data_per_cus_chan()  # 得到每个代理商每个渠道的库存
+        self._inv_cus_sales_chan_month = self._get_inv_data_per_cus_sales_chan()  # 得到每个代理商每个销售渠道的库存
         self._all_cates = categories if categories else list(self._inv.first_cate_name.unique())
 
     def _get_data_path(self):
-        date_flag = "%d%02d" % (self._curr_year, self._curr_month)
-        filename = "m111-inv_%s.txt" % date_flag
+        date_flag = "%d-%02d" % (self._curr_year, self._curr_month)
+        filename = "m111-inv_%s_selected.txt" % date_flag  # TODO: wait to modify
         return os.path.join(INV_DATA_DIR, date_flag, filename)
 
     def _load_inv_data(self, categories=None, need_unitize=True):
-        inv = pd.read_csv(INV_DATA_DIR, sep='\u001e', header=None,
-                          names=INV_DATA_COLUMN_NAMES, parse_dates=[0])
+        print("[INFO] Start loading inventory data...")
+        inv = pd.read_csv(self._inv_data_path, sep='\u001e', header=None,
+                          names=INV_DATA_COLUMN_NAMES, parse_dates=[0],
+                          dtype={3: str, 5: str, 12: str})
+        print("[INFO] Loading finished!")
         if categories:
             inv = inv.loc[inv.first_cate_code.isin(categories)]
         inv = inv.sort_values(by='order_date').reset_index(drop=True)
@@ -131,6 +137,66 @@ class Level3InvData:
         inv_cus_cate2_month = inv_cus_cate2_month.reindex(inv_cus_cate2_month_index)
         return inv_cus_cate2_month
 
+    def _get_inv_data_per_cus_chan(self):
+        """Get monthly inventory data per customer per channel."""
+        inv_cus_chan_month = self._inv_cus_sku_month.reset_index()
+        inv_cus_chan_month['channel_id'] = self._customer_info_encoded.channel_id.values
+        inv_cus_chan_month_index = inv_cus_chan_month[['customer_code', 'channel_id']]
+        inv_cus_chan_month = inv_cus_chan_month.groupby(
+            ['customer_code', 'channel_id'])[self._inv_cus_sku_month.columns].sum()
+        inv_cus_chan_month = inv_cus_chan_month.reindex(inv_cus_chan_month_index)
+        return inv_cus_chan_month
+
+    def _get_inv_data_per_cus_sales_chan(self):
+        """Get monthly inventory data per customer per sales channel."""
+        inv_cus_sales_chan_month = self._inv_cus_sku_month.reset_index()
+        inv_cus_sales_chan_month['sales_chan_id'] = self._customer_info_encoded.sales_chan_id.values
+        inv_cus_sales_chan_month_index = inv_cus_sales_chan_month[['customer_code', 'sales_chan_id']]
+        inv_cus_sales_chan_month = inv_cus_sales_chan_month.groupby(
+            ['customer_code', 'sales_chan_id'])[self._inv_cus_sku_month.columns].sum()
+        inv_cus_sales_chan_month = inv_cus_sales_chan_month.reindex(inv_cus_sales_chan_month_index)
+        return inv_cus_sales_chan_month
+
+    def prepare_training_set(self, months, gap=0):
+        return prepare_training_set(None, None, self._inv_cus_sku_month,
+                                    None, None, None,
+                                    None, None, None,
+                                    None, None, None,
+                                    None, None, None,
+                                    None, None, self._inv_sku_month,
+                                    self._customer_info_encoded, self._sku_info_encoded,
+                                    months, gap, label_flag='inv')
+
+    def prepare_val_set(self, pred_year, pred_month, gap=0):
+        return prepare_val_set(None, None, self._inv_cus_sku_month,
+                               None, None, None,
+                               None, None, None,
+                               None, None, None,
+                               None, None, None,
+                               None, None, self._inv_sku_month,
+                               self._customer_info_encoded, self._sku_info_encoded,
+                               pred_year, pred_month, gap, label_flag='inv')
+
+    def prepare_testing_set(self, pred_year, pred_month, gap=0):
+        return prepare_testing_set(None, None, self._inv_cus_sku_month,
+                                   None, None, None,
+                                   None, None, None,
+                                   None, None, None,
+                                   None, None, None,
+                                   None, None, self._inv_sku_month,
+                                   self._customer_info_encoded, self._sku_info_encoded,
+                                   pred_year, pred_month, gap)
+
+    def get_true_data(self, year, month, periods=0):
+        start_dt_str = "%d-%02d-01" % (year, month)
+        end_dt_str = "%d-%02d-%02d" % (year, month, get_days_of_month(year, month + periods))
+        df = self._inv.loc[(self._inv.order_date >= start_dt_str) & (self._inv.order_date <= end_dt_str)]
+        df['order_date'] = df.order_date.astype(str).apply(lambda x: x[:4] + x[5:7])
+        df = df.groupby(['customer_code', 'item_code', 'order_date'])[['inv_qty']].sum()
+        df = df.loc[df.inv_qty > 0]
+        df.rename(columns={'inv_qty': 'act_inv_qty'}, inplace=True)
+        return df
+
     @property
     def curr_year(self):
         return self._curr_year
@@ -142,6 +208,10 @@ class Level3InvData:
     @property
     def inv_data_path(self):
         return self._inv_data_path
+
+    @property
+    def index(self):
+        return self._index
 
     @property
     def all_cates(self):
@@ -157,8 +227,15 @@ class Level3InvData:
 
 
 def main():
+    from util.date_util import get_pre_months
     level3_inv_data = Level3InvData()
     print(level3_inv_data.inv_data_path)
+    train_months = get_pre_months(2019, 4, left_bound='2018-06')
+    X_train, y_train = level3_inv_data.prepare_training_set(train_months, 0)
+    print(X_train.shape)
+    print(y_train.shape)
+    print(X_train[:5])
+    print(y_train[:5])
 
 
 if __name__ == '__main__':

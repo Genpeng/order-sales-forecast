@@ -14,7 +14,7 @@ import numpy as np
 import pandas as pd
 
 # Own customized modules
-from data_loader.level1_odi_data import Level1OdiData
+from loader.level1_odi_data import Level1OdiData
 from infer.level1_order_infer import Level1OrderInfer
 from util.date_util import get_curr_date, timestamp_to_time
 from util.config_util import get_args, process_config
@@ -56,7 +56,7 @@ def main():
 
     # create predictor and use it to train and predict
     infer = Level1OrderInfer(config=config)
-    preds_test, _ = infer.infer_future(X_train, y_train, X_test, periods=periods)  # output is list of ndarray
+    preds_test, _ = infer.predict_future(X_train, y_train, X_test, periods=periods)  # output is list of ndarray
     months_pred = ['%d%02d' % (start_pred_year, m) for m in range(start_pred_month, start_pred_month + periods)]
     df_pred_test = pd.DataFrame(
         np.array(preds_test).transpose(), index=order_cate_month.index,

@@ -1,27 +1,109 @@
 # _*_ coding: utf-8 _*_
 
 """
-
+Update inventory forecast result of Level-3.
 
 Author: Genpeng Xu
 """
 
-from util.date_util import get_curr_date
+import time
+import numpy as np
+import pandas as pd
+from bunch import Bunch
+
+# Own customized modules
+from loader.level3_inv_data import Level3InvData
+from infer.level3_inv_infer import Level3InvInfer
+from writer.level3_inv_writer import Level3InvWriter
+from util.metric_util import add_accuracy
 from util.config_util import get_args, process_config
+from util.date_util import get_curr_date, infer_month, get_pre_months, timestamp_to_time
 
 
-def main():
-    # Step 0: Input variables
+def update_history(pred_year, pred_month, model_config, db_config, table_name, batch_size=5000):
+    """Update inventory forecast result of level3 in specified month."""
+    print("\n[INFO] Current forecast month is: %d-%02d" % (pred_year, pred_month))
+
+    # Step 1: Load & prepare training and testing set
     # ============================================================================================ #
 
-    pred_year, pred_month = 2019, 4
+    year_upper_bound, month_upper_bound = infer_month(pred_year, pred_month, offset=-2)
+    train_months = get_pre_months(year_upper_bound, month_upper_bound, left_bound='2018-06')
+    test_year, test_month = infer_month(pred_year, pred_month, offset=-1)
+    print("[INFO] The last training month is: %d-%02d" % (year_upper_bound, month_upper_bound))
+    print("[INFO] The test month is: %d-%02d" % (test_year, test_month))
 
+    level3_inv_data = Level3InvData(config.categories, need_unitize=True)
+    X_train, y_train = level3_inv_data.prepare_training_set(train_months, gap=1)
+    X_test = level3_inv_data.prepare_testing_set(test_year, test_month, gap=1)
 
-    # Step 1: Load configuration
+    # Step 2: Training and predicting
     # ============================================================================================ #
 
-    print("[INFO] Load configuration...")
+    level3_inv_infer = Level3InvInfer(config=model_config)
+    pred_test, feat_imps = level3_inv_infer.predict(X_train, y_train, X_test)
 
+    # Step 3: Process forecast result
+    # ============================================================================================ #
+
+    df_test = level3_inv_data.get_true_data(pred_year, pred_month)
+
+    dt_pred = '%d%02d' % (pred_year, pred_month)
+    df_pred_test = pd.DataFrame(
+        np.array([pred_test]).transpose(), index=level3_inv_data.index, columns=[dt_pred]
+    ).stack().to_frame('pred_inv_qty')
+    df_pred_test.index.set_names(['customer_code', 'item_code', 'order_date'], inplace=True)
+    df_pred_test['pred_inv_qty'] = df_pred_test.pred_inv_qty.apply(lambda x: x if x > 0 else 0)
+    df_pred_test['pred_inv_qty'] = np.round(df_pred_test.pred_inv_qty, decimals=4)
+
+    result = df_test.join(df_pred_test, how='left').reset_index()
+
+    result['bu_code'] = 'M111'
+    result['bu_name'] = '厨房热水器事业部'
+    result['comb_name'] = 'Default'
+
+    customer_info = level3_inv_data.customer_info.to_dict()
+    result['sales_cen_code'] = result.customer_code.map(customer_info['sales_cen_code'])
+    result['sales_cen_name'] = result.customer_code.map(customer_info['sales_cen_name'])
+
+    result['customer_name'] = result.customer_code.map(customer_info['customer_name'])
+    # result['province_code'] = result.customer_code.map(customer_info['province_id'])
+    # result['city_code'] = result.customer_code.map(customer_info['city_id'])
+    # result['district_code'] = result.customer_code.map(customer_info['district_id'])
+    # result['channel_code'] = result.customer_code.map(customer_info['channel_name_id'])
+    result['province_name'] = result.customer_code.map(customer_info['province'])
+    result['city_name'] = result.customer_code.map(customer_info['city'])
+    result['district_name'] = result.customer_code.map(customer_info['district'])
+    result['channel_name'] = result.customer_code.map(customer_info['channel_name'])
+    result['platform_code'] = 'Pxxx'
+    result['platform_name'] = '未知'
+
+    sku_info = level3_inv_data.sku_info.to_dict()
+    result['item_name'] = result.item_code.map(sku_info['item_name'])
+    result['first_cate_code'] = result.item_code.map(sku_info['first_cate_code'])
+    result['second_cate_code'] = result.item_code.map(sku_info['second_cate_code'])
+    result['first_cate_name'] = result.item_code.map(sku_info['first_cate_name'])
+    result['second_cate_name'] = result.item_code.map(sku_info['second_cate_name'])
+    result['item_price'] = result.item_code.map(sku_info['item_price'])
+
+    result['pred_inv_amount'] = np.round(result.pred_inv_qty * result.item_price, decimals=4)
+    result['act_inv_amount'] = np.round(result.act_inv_qty * result.item_price, decimals=4)
+    result['inv_pred_time'] = timestamp_to_time(time.time())
+
+    add_accuracy(result, 'act_inv_qty', 'pred_inv_qty')
+
+    # Step 4: Write into database (Kudu)
+    # ============================================================================================ #
+
+    level3_inv_writer = Level3InvWriter(db_config)
+    level3_inv_writer.upsert(result, table_name, batch_size)
+
+
+if __name__ == '__main__':
+    # Load & parse configuration file
+    # ============================================================================================ #
+
+    print("[INFO] Start loading & parsing configuration...")
     parser, config = None, None
     try:
         args, parser = get_args()  # get the path of configuration file
@@ -31,63 +113,24 @@ def main():
         if parser:
             parser.print_help()
         exit(0)
-
     print("[INFO] Parsing finished!")
-    print("[INFO] Months need to be predicted are:", config.pred_months)
 
-    # Step 2: Load data
+    # Update forecast result of level3 inventory
     # ============================================================================================ #
 
-    curr_year, curr_month, _ = get_curr_date()
-    data_file_flag = "%d-%02d" % (curr_year, curr_month)
-    inv_path = "/data/aidev/order-sales-forecast/data/inv/%s/m111-sku-inv_%s.txt" % tuple([data_file_flag] * 2)
-    column_names = ['order_date',
-                    'bu_code',
-                    'bu_name',
-                    'sales_cen_code',
-                    'sales_cen_name',
-                    'sales_region_code',
-                    'sales_region_name',
-                    'region_code',
-                    'region_name',
-                    'province',
-                    'city',
-                    'district',
-                    'customer_code',
-                    'customer_name',
-                    'customer_type',
-                    'is_usable',
-                    'channel_name',
-                    'channel_level',
-                    'sales_chan_name',
-                    'item_code',
-                    'item_name',
-                    'first_cate_code',
-                    'first_cate_name',
-                    'second_cate_code',
-                    'second_cate_name',
-                    'inv_qty',
-                    'inv_amount',
-                    'item_price']
-    inv = pd.read_csv(inv_path, sep='\u001e', header=None, names=column_names, parse_dates=[0])
-    inv.drop(columns=['bu_code',
-                      'bu_name',
-                      'region_code',
-                      'region_name'], inplace=True)
-    inv = inv.loc[inv.first_cate_code.isin(all_cates)]
-    inv = inv.sort_values(by='order_date').reset_index(drop=True)
-    inv['inv_qty'] = inv.inv_qty / 10000
-    inv['inv_amount'] = inv.inv_amount / 10000
+    if config.task_type == 'recent':
+        curr_year, curr_month, _ = get_curr_date()
+        pred_months = ['%d-%02d' % infer_month(curr_year, curr_month, offset=-1)]
+    elif config.task_type == 'specified':
+        pred_months = config.pred_months
+    else:
+        raise Exception("[ERROR] The task type is illegal! Please check the configuration file.")
 
-    # Step
-    # ============================================================================================ #
+    model_config = Bunch(config.model_config)
+    db_config = Bunch(config.uat_db_config)
 
-    # Step
-    # ============================================================================================ #
-
-    # Step
-    # ============================================================================================ #
-
-
-if __name__ == '__main__':
-    main()
+    for dt_str in pred_months:
+        pred_year, pred_month = dt_str.split('-')
+        update_history(int(pred_year), int(pred_month),
+                       model_config, db_config,
+                       config.table_name, config.batch_size)
