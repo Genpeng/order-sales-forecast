@@ -98,6 +98,56 @@ def update_history(pred_year, pred_month, model_config, db_config, table_name, b
     result['customer_code'] = result.customer_code.astype(str)
     result['item_code'] = result.item_code.astype(str)
 
+    result = result[['bu_code',
+                     'comb_name',
+                     'order_date',
+                     'customer_code',
+                     'item_code',
+
+                     'bu_name',
+                     'item_name',
+                     'customer_name',
+                     'first_cate_code',
+                     'first_cate_name',
+                     'second_cate_code',
+                     'second_cate_name',
+
+                     # 'channel_code',
+                     'channel_name',
+                     'platform_code',
+                     'platform_name',
+
+                     'sales_cen_code',
+                     'sales_cen_name',
+
+                     # 'province_code',
+                     'province_name',
+                     # 'city_code',
+                     'city_name',
+                     # 'district_code',
+                     'district_name',
+
+                     # 'act_ord_qty',
+                     # 'pred_ord_qty',
+                     # 'act_ord_amount',
+                     # 'pred_ord_amount',
+
+                     # 'act_dis_qty',
+                     # 'pred_dis_qty',
+                     # 'act_dis_amount',
+                     # 'pred_dis_amount',
+
+                     'act_inv_qty',
+                     'pred_inv_qty',
+                     'act_inv_amount',
+                     'pred_inv_amount',
+
+                     'item_price',
+                     # 'ord_pred_time',
+                     # 'dis_pred_time',
+                     'inv_pred_time',
+                     'accuracy']]
+
     # Step 4: Write into database (Kudu)
     # ============================================================================================ #
 
