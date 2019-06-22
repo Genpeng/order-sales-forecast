@@ -92,6 +92,8 @@ def update_history(pred_year, pred_month, model_config, db_config, table_name, b
 
     add_accuracy(result, 'act_inv_qty', 'pred_inv_qty')
 
+    result.rename(columns={'channel_name': 'channal_name'}, inplace=True)  # TODO: to be removed
+
     result['sales_cen_code'] = result.sales_cen_code.astype(str)
     result['customer_code'] = result.customer_code.astype(str)
     result['item_code'] = result.item_code.astype(str)
