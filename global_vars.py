@@ -3,14 +3,19 @@
 """
 All the global variables needed for this project.
 
-TODO: 不同环境的数据库配置可以更加优雅一点！
-
 Author: Genpeng Xu
 """
 
 import os
 
 ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
+
+HDFS_ROOT_DIR = "/user/hive/warehouse/ai_orders_predict.db/"
+
+ORDER_TABLE_NAME = "init_pl_order"
+DIS_TABLE_NAME = "init_channel_sales"
+INV_TABLE_NAME = "init_channel_inv"
+
 ORDER_DATA_DIR = os.path.join(ROOT_DIR, "data/order")
 DIS_DATA_DIR = os.path.join(ROOT_DIR, "data/dis")
 INV_DATA_DIR = os.path.join(ROOT_DIR, "data/inv")
