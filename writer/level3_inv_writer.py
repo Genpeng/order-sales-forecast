@@ -20,7 +20,6 @@ class Level3InvWriter(BaseWriter):
 def main():
     from global_vars import UatDbConfig
     db_config = UatDbConfig()
-    print(type(db_config.auth_mechanism))
     writer = Level3InvWriter(db_config)
 
 
