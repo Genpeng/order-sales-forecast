@@ -48,6 +48,6 @@
     "user": "aiop_bind",
     "password": "1Ye8Xl1Td0"
   },
-  "table_name": "level3_customer_pred_resul",
+  "table_name": "level3_customer_pred_result",
   "batch_size": 5000
 }

@@ -1,4 +1,5 @@
 # _*_ coding: utf-8 _*_
+
 """
 All the global variables needed for this project.
 
