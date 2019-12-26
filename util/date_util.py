@@ -9,6 +9,7 @@ Author: Genpeng Xu
 import time
 import calendar
 import datetime
+from typing import List
 
 
 def timestamp_to_time(timestamp):
@@ -36,7 +37,7 @@ def infer_month(year, month, offset=-1):
     return year, month
 
 
-def get_pre_months(year, month, left_bound='2015-09'):
+def get_pre_months(year: int, month: int, left_bound: str = '2016-01') -> List[str]:
     start_year, start_month = int(left_bound.split('-')[0]), int(left_bound.split('-')[1])
     all_months = []
     if year == start_year and month >= start_month:
@@ -60,12 +61,12 @@ def get_pre_months(year, month, left_bound='2015-09'):
     return all_months
 
 
-def main():
+def _test():
     # 测试 get_days_of_month
     # print(get_days_of_month(2019, 3))
 
     # 测试 get_pre_months
-    # print(get_pre_months(2019, 4))
+    print(get_pre_months(2019, 4))
 
     # 测试 get_month
     # year, month = 2019, 3
@@ -76,8 +77,8 @@ def main():
     # print(get_curr_date())
 
     # 测试 timestamp_to_time
-    print(timestamp_to_time(time.time()))
+    # print(timestamp_to_time(time.time()))
 
 
 if __name__ == '__main__':
-    main()
+    _test()

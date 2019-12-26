@@ -1,5 +1,5 @@
 {
-  "task_name": "level3_inv_update_history",
+  "task_name": "level3_inv_predict_history",
   "task_type": "recent",
   "pred_months": [
     "2019-05",

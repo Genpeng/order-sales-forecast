@@ -14,7 +14,7 @@ import numpy as np
 import pandas as pd
 
 # Own customized modules
-from loader.level1_odi_data import Level1OdiData
+from data_loader.level1_odi_data import Level1OdiData
 from infer.level1_order_infer import Level1OrderInfer
 from util.date_util import get_curr_date, timestamp_to_time
 from util.config_util import get_args, process_config

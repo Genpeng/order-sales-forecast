@@ -14,7 +14,7 @@ from sklearn.preprocessing import LabelEncoder
 
 # Own scaffolds
 from util.date_util import *
-from util.feature_util import prepare_training_set, prepare_testing_set
+from util.feature_util import prepare_training_set_for_level3, prepare_testing_set
 from base.base_loader import BaseLoader
 
 

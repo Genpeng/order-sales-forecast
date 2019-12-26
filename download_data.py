@@ -33,19 +33,22 @@ def delete_all(dir):
     return True
 
 
-def download(client, table_name, year, month, data_flag='order'):
+def download(client, table_name, year, month):
     partition_flag = "part_dt=%d-%02d" % (year, month)
     file_dir = os.path.join(HDFS_ROOT_DIR, table_name, partition_flag)
     hdfs_filenames = client.list(file_dir)
     hdfs_filepaths = [os.path.join(file_dir, filename) for filename in hdfs_filenames]
 
     save_flag = "%d-%02d" % (year, month)
-    if data_flag == 'order':
+    if table_name == ORDER_TABLE_NAME:
         save_dir = os.path.join(ORDER_DATA_DIR, save_flag)
-    elif data_flag == 'dis':
+        final_filename = "m111-%s_%d-%02d.txt" % ('order', year, month)
+    elif table_name == DIS_TABLE_NAME:
         save_dir = os.path.join(DIS_DATA_DIR, save_flag)
-    elif data_flag == 'inv':
+        final_filename = "m111-%s_%d-%02d.txt" % ('dis', year, month)
+    elif table_name == INV_TABLE_NAME:
         save_dir = os.path.join(INV_DATA_DIR, save_flag)
+        final_filename = "m111-%s_%d-%02d.txt" % ('inv', year, month)
     else:
         raise Exception("[ERROR] The downloaded data type is illegal! Please check the `data_flag`.")
     if not os.path.exists(save_dir):
@@ -66,7 +69,6 @@ def download(client, table_name, year, month, data_flag='order'):
                 print("[ERROR] Cannot download %s successfully!")
                 return
 
-    final_filename = "m111-%s_%d-%02d.txt" % (data_flag, year, month)
     final_filepath = os.path.join(save_dir, final_filename)
     save_filepaths = [os.path.join(save_dir, f) for f in os.listdir(save_dir)]
     with open(final_filepath, 'w', encoding='utf-8') as fout:
@@ -83,6 +85,6 @@ if __name__ == '__main__':
     uat_url = "http://10.18.104.201:50070"
     uat_client = InsecureClient(uat_url, user='caojun1')
 
-    download(uat_client, ORDER_TABLE_NAME, curr_year, curr_month, data_flag='order')
-    download(uat_client, DIS_TABLE_NAME, curr_year, curr_month, data_flag='dis')
-    download(uat_client, INV_TABLE_NAME, curr_year, curr_month, data_flag='inv')
+    download(uat_client, ORDER_TABLE_NAME, curr_year, curr_month)
+    download(uat_client, DIS_TABLE_NAME, curr_year, curr_month)
+    download(uat_client, INV_TABLE_NAME, curr_year, curr_month)

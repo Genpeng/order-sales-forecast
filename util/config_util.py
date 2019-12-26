@@ -59,8 +59,8 @@ def main():
             parser.print_help()
         exit(0)
 
-    print(config.learning_rate)
-    print(type(config.learning_rate))
+    print(config.model_config)
+    print(type(config.model_config))
 
 
 if __name__ == '__main__':

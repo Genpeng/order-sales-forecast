@@ -3,6 +3,8 @@
 """
 Update inventory forecast result of Level-3.
 
+TODO: 线下常规和线下工程合并
+
 Author: Genpeng Xu
 """
 
@@ -12,9 +14,9 @@ import pandas as pd
 from bunch import Bunch
 
 # Own customized modules
-from loader.level3_inv_data import Level3InvData
-from infer.level3_inv_infer import Level3InvInfer
-from writer.level3_inv_writer import Level3InvWriter
+from data_loader.level3_inv_data_loader import Level3InvDataLoader
+from infer.level3_infer import SalesInfer
+from writer.kudu_result_writer import KuduResultWriter
 from util.metric_util import add_accuracy
 from util.config_util import get_args, process_config
 from util.date_util import get_curr_date, infer_month, get_pre_months, timestamp_to_time
@@ -33,14 +35,14 @@ def update_history(pred_year, pred_month, model_config, db_config, table_name, b
     print("[INFO] The last training month is: %d-%02d" % (year_upper_bound, month_upper_bound))
     print("[INFO] The test month is: %d-%02d" % (test_year, test_month))
 
-    level3_inv_data = Level3InvData(config.categories, need_unitize=True)
+    level3_inv_data = Level3InvDataLoader(pred_year, pred_month, config.categories, need_unitize=True)
     X_train, y_train = level3_inv_data.prepare_training_set(train_months, gap=1)
     X_test = level3_inv_data.prepare_testing_set(test_year, test_month, gap=1)
 
     # Step 2: Training and predicting
     # ============================================================================================ #
 
-    level3_inv_infer = Level3InvInfer(config=model_config)
+    level3_inv_infer = SalesInfer(config=model_config)
     pred_test, feat_imps = level3_inv_infer.predict(X_train, y_train, X_test)
 
     # Step 3: Process forecast result
@@ -101,7 +103,7 @@ def update_history(pred_year, pred_month, model_config, db_config, table_name, b
     # Step 4: Write into database (Kudu)
     # ============================================================================================ #
 
-    level3_inv_writer = Level3InvWriter(db_config)
+    level3_inv_writer = KuduResultWriter(db_config)
     level3_inv_writer.upsert(result, table_name, batch_size)
 
 

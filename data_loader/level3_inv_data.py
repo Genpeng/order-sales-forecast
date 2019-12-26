@@ -11,17 +11,18 @@ import pandas as pd
 from sklearn.preprocessing import LabelEncoder
 
 # Own Customized modules
+from base.base_data_loader import BaseDataLoader
 from global_vars import INV_DATA_DIR, INV_DATA_COLUMN_NAMES
 from util.data_util import transform_channel
-from util.date_util import get_curr_date, get_days_of_month
-from util.feature_util import prepare_training_set, prepare_val_set, prepare_testing_set
+from util.date_util import get_days_of_month
+from util.feature_util import prepare_training_set_for_level3, prepare_val_set, prepare_testing_set
 
 
-class Level3InvData:
+class Level3InvDataLoader(BaseDataLoader):
     """Invertory data of Level-3 (per sku per customer)."""
 
-    def __init__(self, categories=None, need_unitize=True):
-        self._curr_year, self._curr_month, _ = get_curr_date()
+    def __init__(self, year, month, categories=None, need_unitize=True):
+        self._curr_year, self._curr_month = year, month
         self._inv_data_path = self._get_data_path()
         self._inv = self._load_inv_data(categories, need_unitize)
         self._inv_cus_sku_month = self._get_inv_data_per_cus_sku()  # 得到每个代理商每个SKU每个月库存
@@ -29,6 +30,8 @@ class Level3InvData:
         self._customer_info, self._customer_info_encoded = self._get_cus_info()  # 得到代理商的信息
         self._sku_info, self._sku_info_encoded = self._get_sku_info()  # 得到SKU的信息
         self._inv_sku_month = self._get_inv_data_per_sku()  # 得到每个SKU每个月的库存
+        self._inv_cate1_month = self._get_inv_data_per_cate1()  # 得到每个大类每个月的库存
+        self._inv_cate2_month = self._get_inv_data_per_cate2()  # 得到每个小类每个月的库存
         self._inv_cus_cate1_month = self._get_inv_data_per_cus_cate1()  # 得到每个代理商每个大类的库存
         self._inv_cus_cate2_month = self._get_inv_data_per_cus_cate2()  # 得到每个代理商每个小类的库存
         self._inv_cus_chan_month = self._get_inv_data_per_cus_chan()  # 得到每个代理商每个渠道的库存
@@ -52,6 +55,7 @@ class Level3InvData:
         if need_unitize:  # 是否需要单位化，即以万作为单位
             inv['inv_qty'] = inv.inv_qty / 10000
             inv['inv_amount'] = inv.inv_amount / 10000
+        inv['district'] = inv.district.str.replace(r'\\N', '未知')
         inv['channel_name'] = inv.channel_name.apply(lambda x: transform_channel(x))
         inv['sales_chan_name'] = inv.sales_chan_name.str.replace(r'\\N', '未知')
         return inv
@@ -117,6 +121,24 @@ class Level3InvData:
         sku_info_encoded = sku_info_encoded.reindex(self._inv_cus_sku_month.index.get_level_values(1))
         return sku_info, sku_info_encoded
 
+    def _get_inv_data_per_cate1(self):
+        """Get monthly inventory data per first level category."""
+        inv_cate1_month = self._inv_cus_sku_month.reset_index()
+        inv_cate1_month['first_cate_id'] = self._sku_info_encoded.first_cate_id.values
+        inv_cate1_month_index = inv_cate1_month['first_cate_id']
+        inv_cate1_month = inv_cate1_month.groupby(['first_cate_id'])[self._inv_cus_sku_month.columns].sum()
+        inv_cate1_month = inv_cate1_month.reindex(inv_cate1_month_index)
+        return inv_cate1_month
+
+    def _get_inv_data_per_cate2(self):
+        """Get monthly inventory data per first level category."""
+        inv_cate2_month = self._inv_cus_sku_month.reset_index()
+        inv_cate2_month['second_cate_id'] = self._sku_info_encoded.second_cate_id.values
+        inv_cate2_month_index = inv_cate2_month['second_cate_id']
+        inv_cate2_month = inv_cate2_month.groupby(['second_cate_id'])[self._inv_cus_sku_month.columns].sum()
+        inv_cate2_month = inv_cate2_month.reindex(inv_cate2_month_index)
+        return inv_cate2_month
+
     def _get_inv_data_per_cus_cate1(self):
         """Get monthly inventory data per customer per first level category."""
         inv_cus_cate1_month = self._inv_cus_sku_month.reset_index()
@@ -158,34 +180,40 @@ class Level3InvData:
         return inv_cus_sales_chan_month
 
     def prepare_training_set(self, months, gap=0):
-        return prepare_training_set(None, None, self._inv_cus_sku_month,
-                                    None, None, None,
-                                    None, None, None,
-                                    None, None, None,
-                                    None, None, None,
-                                    None, None, self._inv_sku_month,
-                                    self._customer_info_encoded, self._sku_info_encoded,
-                                    months, gap, label_flag='inv')
+        return prepare_training_set_for_level3(None, None, self._inv_cus_sku_month,
+                                               None, None, self._inv_cus_cate1_month,
+                                               None, None, self._inv_cus_cate2_month,
+                                               None, None, self._inv_cus_chan_month,
+                                               None, None, self._inv_cus_sales_chan_month,
+                                               None, None, self._inv_sku_month,
+                                               None, None, self._inv_cate1_month,
+                                               None, None, self._inv_cate2_month,
+                                               self._customer_info_encoded, self._sku_info_encoded,
+                                               months, gap, label_flag='inv')
 
     def prepare_val_set(self, pred_year, pred_month, gap=0):
         return prepare_val_set(None, None, self._inv_cus_sku_month,
-                               None, None, None,
-                               None, None, None,
-                               None, None, None,
-                               None, None, None,
+                               None, None, self._inv_cus_cate1_month,
+                               None, None, self._inv_cus_cate2_month,
+                               None, None, self._inv_cus_chan_month,
+                               None, None, self._inv_cus_sales_chan_month,
                                None, None, self._inv_sku_month,
+                               None, None, self._inv_cate1_month,
+                               None, None, self._inv_cate2_month,
                                self._customer_info_encoded, self._sku_info_encoded,
                                pred_year, pred_month, gap, label_flag='inv')
 
     def prepare_testing_set(self, pred_year, pred_month, gap=0):
         return prepare_testing_set(None, None, self._inv_cus_sku_month,
-                                   None, None, None,
-                                   None, None, None,
-                                   None, None, None,
-                                   None, None, None,
+                                   None, None, self._inv_cus_cate1_month,
+                                   None, None, self._inv_cus_cate2_month,
+                                   None, None, self._inv_cus_chan_month,
+                                   None, None, self._inv_cus_sales_chan_month,
                                    None, None, self._inv_sku_month,
+                                   None, None, self._inv_cate1_month,
+                                   None, None, self._inv_cate2_month,
                                    self._customer_info_encoded, self._sku_info_encoded,
-                                   pred_year, pred_month, gap)
+                                   pred_year, pred_month, gap, label_flag='inv')
 
     def get_true_data(self, year, month, periods=0):
         start_dt_str = "%d-%02d-01" % (year, month)
@@ -226,9 +254,10 @@ class Level3InvData:
         return self._sku_info
 
 
-def main():
-    from util.date_util import get_pre_months
-    level3_inv_data = Level3InvData()
+if __name__ == '__main__':
+    from util.date_util import get_pre_months, get_curr_date
+    curr_year, curr_month = get_curr_date()
+    level3_inv_data = Level3InvDataLoader(curr_year, curr_month)
     print(level3_inv_data.inv_data_path)
     train_months = get_pre_months(2019, 4, left_bound='2018-06')
     X_train, y_train = level3_inv_data.prepare_training_set(train_months, 0)
@@ -236,7 +265,3 @@ def main():
     print(y_train.shape)
     print(X_train[:5])
     print(y_train[:5])
-
-
-if __name__ == '__main__':
-    main()
