@@ -1,0 +1,1 @@
+nohup  python -u level3_order_predict_history.py -c configs/level3_order_predict_history_config.json > logs/level3_order_predict_history.log 2>&1 &
