@@ -16,13 +16,16 @@ from infer.sales_infer import SalesInfer
 from util.metric_util import add_accuracy
 from global_vars import SIT_DB_CONFIG, UAT_DB_CONFIG, PROD_DB_CONFIG
 from util.config_util import get_args, process_config
+from util.feature_util import rule_func
 from data_loader.item_list import ItemList
-from data_loader.level2_order_data import Level2DataLoader
+from data_loader.level2_data import Level2DataLoader
+from data_loader.plan_data import PlanData
 from writer.kudu_result_writer import KuduResultWriter
 from util.date_util import get_curr_date, infer_month, get_pre_months, timestamp_to_time
 
 
 def update_history_for_level2_order(level2_data: Level2DataLoader,
+                                    plan_data: PlanData,
                                     model_config: Bunch,
                                     db_config: Bunch,
                                     start_pred_year: int,
@@ -83,10 +86,74 @@ def update_history_for_level2_order(level2_data: Level2DataLoader,
     result = result.loc[result.item_code.apply(lambda x: item_list.is_white_items(x))]
 
     print()
-    print("[INFO] The average accuracy is: %.2f" % (result.ord_acc.mean() * 100))
-    print("[INFO] The weighted accuracy is: %.2f" % (result.ord_weighted_acc.sum() / result.act_ord_qty.sum() * 100))
+    print("[INFO] The average accuracy of model is: %.2f" % (result.ord_acc.mean() * 100))
+    print("[INFO] The weighted accuracy of model is: %.2f" % (result.ord_weighted_acc.sum() / result.act_ord_qty.sum() * 100))
 
-    # Step 4: Write into database (Kudu)
+    # Step 4: Ensemble with rule
+    # ============================================================================================ #
+
+    rule_res = result.copy()
+    order_sku_month_pre6_mean = level2_data.get_pre_order_vals(
+        start_pred_year, start_pred_month, 6, True).replace(0, np.nan).mean(axis=1)
+    dis_sku_month_pre3_mean = level2_data.get_pre_dis_vals(
+        start_pred_year, start_pred_month, 3, True).replace(0, np.nan).mean(axis=1)
+    order_sku_month_pre1 = level2_data.get_pre_order_vals(
+        start_pred_year, start_pred_month, 1, True).mean(axis=1)
+    dis_sku_month_pre1 = level2_data.get_pre_dis_vals(
+        start_pred_year, start_pred_month, 1, True).mean(axis=1)
+    plan_sku_month_mean = plan_data.plan_sku_month_mean
+
+    rule_res['ord_sku_month_pre6_mean'] = rule_res.item_code.map(order_sku_month_pre6_mean)
+    rule_res['dis_sku_month_pre3_mean'] = rule_res.item_code.map(dis_sku_month_pre3_mean)
+    rule_res['ord_sku_month_pre1'] = rule_res.item_code.map(order_sku_month_pre1)
+    rule_res['dis_sku_month_pre1'] = rule_res.item_code.map(dis_sku_month_pre1)
+    rule_res['plan_sku_month_mean'] = rule_res.item_code.map(plan_sku_month_mean)
+
+    rule_res['is_aver_ord_na'] = (rule_res.ord_sku_month_pre6_mean.isna()) * 1
+    rule_res['is_aver_dis_na'] = (rule_res.dis_sku_month_pre3_mean.isna()) * 1
+    rule_res['is_aver_plan_na'] = (rule_res.plan_sku_month_mean.isna()) * 1
+    rule_res['is_ord_pre1_na'] = (rule_res.ord_sku_month_pre1.isna()) * 1
+    rule_res['is_dis_pre1_na'] = (rule_res.dis_sku_month_pre1.isna()) * 1
+
+    rule_res['online_offline_flag'] = rule_res.item_code.map(sku_info_dict['sales_chan_name']).fillna('未知')
+    rule_res['project_flag'] = rule_res.item_code.map(sku_info_dict['project_flag']).fillna('未知')
+
+    temp = level2_data.get_pre_order_vals(
+        start_pred_year, start_pred_month, 24, True).replace(0, np.nan).mean(axis=1)
+    curr_new_items = set(temp.loc[temp.isna()].index)
+    temp = level2_data.get_pre_dis_vals(start_pred_year, start_pred_month, 3, True)
+    temp['num_not_null'] = ((temp > 0) * 1).sum(axis=1)
+    new_items_by_dis = set(temp.loc[(temp.num_not_null == 1) & (temp.iloc[:, 2] > 0)].index)
+    temp = plan_data.get_one_month(true_pred_year, true_pred_month, True)
+    rule_res['demand'] = rule_res.item_code.map(temp)
+    rule_res['is_curr_new'] = rule_res.item_code.apply(lambda x: 1 if x in curr_new_items else 0)
+    rule_res['is_new_by_dis'] = rule_res.item_code.apply(lambda x: 1 if x in new_items_by_dis else 0)
+    rule_res['demand_dis_ratio'] = rule_res.demand / rule_res.dis_sku_month_pre3_mean
+
+    rule_res['pred_ord_qty_rule'] = rule_res.apply(rule_func, axis=1)
+    rule_res['pred_ord_qty_rule'] = rule_res.pred_ord_qty_rule.replace(np.nan, 0)
+    rule_res['pred_ord_qty_rule'] = rule_res.apply(
+        lambda x: x.pred_ord_qty if x.pred_ord_qty_rule == 0 else x.pred_ord_qty_rule,
+        axis=1
+    )
+
+    add_accuracy(result, 'rule_ord_acc', 'act_ord_qty', 'pred_ord_qty_rule')
+    result['rule_ord_weighted_acc'] = (result.act_ord_qty * result.rule_ord_acc).astype(np.float32)
+
+    print()
+    print("[INFO] The average accuracy of rule is: %.2f" % (result.rule_ord_acc.mean() * 100))
+    print("[INFO] The weighted accuracy of rule is: %.2f" % (result.rule_ord_weighted_acc.sum() / result.act_ord_qty.sum() * 100))
+
+    result['pred_ord_qty'] = result.pred_ord_qty * 0.5 + rule_res.pred_ord_qty_rule * 0.5
+
+    add_accuracy(result, 'ord_acc', 'act_ord_qty', 'pred_ord_qty')
+    result['ord_weighted_acc'] = (result.act_ord_qty * result.ord_acc).astype(np.float32)
+
+    print()
+    print("[INFO] The average accuracy of ensemble is: %.2f" % (result.ord_acc.mean() * 100))
+    print("[INFO] The weighted accuracy of ensemble is: %.2f" % (result.ord_weighted_acc.sum() / result.act_ord_qty.sum() * 100))
+
+    # Step 5: Write into database (Kudu)
     # ============================================================================================ #
 
     if db_config.env == 'SIT':
@@ -134,15 +201,17 @@ if __name__ == '__main__':
 
     model_config = Bunch(config.model_config)
     db_config = Bunch(config.db_config)
-    level2_order_data = Level2DataLoader(curr_year, curr_month,
-                                         categories=config.categories,
-                                         need_unitize=config.need_unitize,
-                                         label_data='order')
+    level2_data = Level2DataLoader(curr_year, curr_month,
+                                   categories=config.categories,
+                                   need_unitize=config.need_unitize,
+                                   label_data='order')
+    plan_data = PlanData(curr_year, curr_month, need_unitize=config.need_unitize)
 
     for ym_str in pred_months:
         start_pred_year, start_pred_month = map(int, ym_str.split('-'))
         if date(start_pred_year, start_pred_month, 1) <= date(year_upper_bound, month_upper_bound, 1):
-            update_history_for_level2_order(level2_data=level2_order_data,
+            update_history_for_level2_order(level2_data=level2_data,
+                                            plan_data=plan_data,
                                             model_config=model_config,
                                             db_config=db_config,
                                             start_pred_year=start_pred_year,

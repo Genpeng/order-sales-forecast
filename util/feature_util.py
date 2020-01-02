@@ -842,3 +842,75 @@ def prepare_testing_set_for_level2(order, dis, inv,
     del X_test1, X_test2, X_test3
     gc.collect()
     return X_test
+
+
+def rule_func(df):
+    if df.first_cate_name in {'净水机', '饮水机', '洗碗机', '消毒柜'}:
+        if df.is_curr_new:  # 如果是当月新品
+            return df.demand
+        else:  # 如果不是当月新品
+            if df.is_dis_pre1_na or df.is_aver_dis_na:  # 如果上月分销或者月均分销为空
+                if df.demand == 0:
+                    return df.pred_ord_qty
+                else:
+                    return df.demand
+            else:  # 如果上月分销或者月均分销不为空
+                if df.demand == 0:
+                    return df.pred_ord_qty
+                else:
+                    if df.demand_dis_ratio > 1.1:
+                        return (df.demand + df.dis_sku_month_pre3_mean) / 2
+                    else:
+                        if df.demand > df.dis_sku_month_pre1:
+                            return (df.demand + df.dis_sku_month_pre3_mean) / 2
+                        else:
+                            return df.demand
+    elif df.first_cate_name in {'烟机', '灶具'}:
+        if df.project_flag == '是':
+            return (df.dis_sku_month_pre3_mean + df.demand) / 2
+        elif df.is_new_by_dis:
+            return df.ord_sku_month_pre1
+        else:
+            if df.is_aver_dis_na:
+                if df.is_aver_plan_na:
+                    if df.demand == 0:
+                        return df.pred_ord_qty
+                    else:
+                        return df.demand
+                else:
+                    return (df.demand + df.plan_sku_month_mean) / 2
+            else:
+                if df.demand == 0:
+                    if df.is_aver_ord_na:
+                        if df.is_aver_plan_na:
+                            return df.demand
+                        else:
+                            return df.plan_sku_month_mean
+                    else:
+                        return df.ord_sku_month_pre6_mean
+                else:
+                    return (df.demand + df.plan_sku_month_mean) / 2
+    elif df.first_cate_name in {'电热水器', '燃气热水器'}:
+        if df.demand == 0:
+            if df.is_aver_plan_na:
+                return df.pred_ord_qty
+            else:
+                return df.plan_sku_month_mean
+        else:
+            if df.is_aver_ord_na:
+                if df.is_aver_plan_na:
+                    return df.demand
+                else:
+                    return df.plan_sku_month_mean
+            else:
+                if df.first_cate_name == '电热水器':
+                    if df.demand >= 10000 / 10000:
+                        return (df.dis_sku_month_pre1 + df.demand) / 2
+                    else:
+                        return (df.demand + df.ord_sku_month_pre6_mean) / 2
+                elif df.first_cate_name == '燃气热水器':
+                    return (df.demand + df.ord_sku_month_pre6_mean) / 2
+                else:
+                    return df.pred_ord_qty
+    else:
+        return df.pred_ord_qty

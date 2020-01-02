@@ -19,7 +19,9 @@ from util.data_util import transform_channel, transform_project_flag, remove_whi
 from util.feature_util import (prepare_training_set_for_level2,
                                prepare_val_set_for_level2,
                                prepare_testing_set_for_level2,
-                               modify_training_set)
+                               modify_training_set,
+                               get_pre_vals,
+                               get_val)
 from global_vars import (ORDER_DATA_DIR, ORDER_DATA_COLUMN_NAMES,
                          SUPPORTED_CATE_NAMES, CATE_NAME_2_CATE_CODE,
                          DIS_DATA_DIR, DIS_DATA_COLUMN_NAMES,
@@ -38,10 +40,10 @@ class Level2DataLoader(BaseDataLoader):
         self._version_flag = "%d-%02d" % (self._year, self._month)
         self._order = self._get_order_data(need_unitize)  # 提货数据
         self._order_sku_month = self._get_month_order_per_sku()  # 每个SKU每个月的提货
-        # self._dis = self._get_dis_data(need_unitize)  # 分销数据
-        # self._dis_sku_month = self._get_month_dis_per_sku()  # 每个SKU每个月的分销
-        # self._inv = self._get_inv_data(need_unitize)  # 库存数据
-        # self._inv_sku_month = self._get_month_inv_per_sku()  # 每个SKU每个月的库存
+        self._dis = self._get_dis_data(need_unitize)  # 分销数据
+        self._dis_sku_month = self._get_month_dis_per_sku()  # 每个SKU每个月的分销
+        self._inv = self._get_inv_data(need_unitize)  # 库存数据
+        self._inv_sku_month = self._get_month_inv_per_sku()  # 每个SKU每个月的库存
         self._index = self._get_index(label_data)
         self._reset_index()
         self._sku_info, self._sku_info_encoded = self._get_sku_info()  # 得到SKU的信息
@@ -266,8 +268,8 @@ class Level2DataLoader(BaseDataLoader):
 
     def _reset_index(self) -> None:
         self._order_sku_month = self._order_sku_month.reindex(self._index)
-        # self._dis_sku_month = self._dis_sku_month.reindex(self._index)
-        # self._inv_sku_month = self._inv_sku_month.reindex(self._index)
+        self._dis_sku_month = self._dis_sku_month.reindex(self._index)
+        self._inv_sku_month = self._inv_sku_month.reindex(self._index)
 
     def prepare_training_set(self, months, gap=0):
         X_train, y_train = prepare_training_set_for_level2(self._order_sku_month, None, None,
@@ -325,6 +327,32 @@ class Level2DataLoader(BaseDataLoader):
         df_preds['pred_ord_qty'] = df_preds.pred_ord_qty.apply(lambda x: x if x > 0 else 0)
         df_preds['pred_ord_qty'] = np.round(df_preds.pred_ord_qty, decimals=4 if use_unitize else 0)
         return df_preds
+
+    def get_pre_order_vals(self,
+                           year: int,
+                           month: int,
+                           periods: int = 3,
+                           need_index: bool = True) -> pd.DataFrame:
+        return get_pre_vals(self._order_sku_month, year, month, periods, need_index)
+
+    def get_one_month_order(self,
+                            year: int,
+                            month: int,
+                            need_index: bool = True) -> Union[np.ndarray, pd.Series]:
+        return get_val(self._order_sku_month, year, month, need_index)
+
+    def get_pre_dis_vals(self,
+                         year: int,
+                         month: int,
+                         periods: int = 3,
+                         need_index: bool = True) -> pd.DataFrame:
+        return get_pre_vals(self._dis_sku_month, year, month, periods, need_index)
+
+    def get_one_month_dis(self,
+                          year: int,
+                          month: int,
+                          need_index: bool = True) -> Union[np.ndarray, pd.Series]:
+        return get_val(self._dis_sku_month, year, month, need_index)
 
     @property
     def year(self):
