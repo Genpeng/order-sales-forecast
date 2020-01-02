@@ -1,5 +1,5 @@
 {
-  "task_name": "level3_order_predict_future",
+  "task_name": "level2_order_predict_future",
   "periods": 4,
   "categories": "all",
   "need_unitize": true,
@@ -22,7 +22,7 @@
   },
   "db_config": {
     "env": "UAT",
-    "table_name": "m111_level3_order_pred_result",
+    "table_name": "m111_level2_order_pred_result",
     "batch_size": 5000
   }
 }

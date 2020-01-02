@@ -57,7 +57,37 @@ ORDER_DATA_COLUMN_NAMES = [
     'received_qty',
     'return_qty'
 ]
-DIS_DATA_COLUMNS_NAMES = []
+DIS_DATA_COLUMN_NAMES = [
+    'order_date',
+    'bu_code',
+    'bu_name',
+    'customer_code',
+    'customer_name',
+    'sales_cen_code',
+    'sales_cen_name',
+    'sales_region_code',
+    'sales_region_name',
+    'region_code',
+    'region_name',
+    'province',
+    'city',
+    'district',
+    'road',
+    'item_code',
+    'item_name',
+    'first_cate_code',
+    'first_cate_name',
+    'second_cate_code',
+    'second_cate_name',
+    'customer_type',
+    'is_usable',
+    'channel_name',
+    'channel_level',
+    'sales_chan_name',
+    'dis_qty',
+    'item_price',
+    'dis_amount'
+]
 INV_DATA_COLUMN_NAMES = [
     'order_date',
     'bu_code',
@@ -87,6 +117,25 @@ INV_DATA_COLUMN_NAMES = [
     'inv_qty',
     'inv_amount',
     'item_price'
+]
+PLAN_DATA_COLUMN_NAMES = [
+    'bd_code',
+    'bd_name',
+    'order_type_name',
+    'period_code',
+    'begin_date',
+    'end_date',
+    'customer_code',
+    'customer_name',
+    'sales_center_code',
+    'sales_center_name',
+    'item_code',
+    'item_name',
+    'plan_mode',
+    'month_plan_qty',
+    'm2_month_plan_qty',
+    'm3_month_plan_qty',
+    'w_insert_dt'
 ]
 ITEM_LIST_COLUMN_NAMES = [
     'id',

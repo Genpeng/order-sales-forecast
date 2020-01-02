@@ -30,21 +30,22 @@ class Level3OrderDataLoader(BaseDataLoader):
     def __init__(self, year, month, categories='all', need_unitize=True):
         self._year, self._month = year, month
         self._categories = categories
-        self._all_cates = self._get_all_cates(self._categories)
-        self._data_flag = "%d-%02d" % (self._year, self._month)
-        self._order = self._load_order_data(need_unitize)
-        self._order_cus_sku_month = self._get_order_data_per_cus_sku()  # 得到每个代理商每个SKU每个月提货
+        self._all_cate_names = self._get_all_cates(self._categories)
+        self._all_cate_codes = set([CATE_NAME_2_CATE_CODE[cate] for cate in self._all_cate_names])
+        self._version_flag = "%d-%02d" % (self._year, self._month)
+        self._order = self._get_order_data(need_unitize)
+        self._order_cus_sku_month = self._get_month_order_per_cus_sku()  # 得到每个代理商每个SKU每个月提货
         self._index = self._order_cus_sku_month.index
-        self._order_cus_sku_month_pre15 = self._get_pre15_order_data_per_cus_sku()  # 得到每个代理商每个SKU每个月前15天的提货
+        self._order_cus_sku_month_pre15 = self._get_pre15_order_per_cus_sku()  # 得到每个代理商每个SKU每个月前15天的提货
         self._customer_info, self._customer_info_encoded = self._get_cus_info()  # 得到代理商的信息
         self._sku_info, self._sku_info_encoded = self._get_sku_info()  # 得到SKU的信息
-        self._order_sku_month = self._get_order_data_per_sku()  # 得到每个SKU每个月的提货
-        self._order_cate1_month = self._get_order_data_per_cate1()  # 得到每个大类每个月的提货
-        self._order_cate2_month = self._get_order_data_per_cate2()  # 得到每个小类每个月的提货
-        self._order_cus_cate1_month = self._get_order_data_per_cus_cate1()  # 得到每个代理商每个大类的提货
-        self._order_cus_cate2_month = self._get_order_data_per_cus_cate2()  # 得到每个代理商每个小类的提货
-        self._order_cus_chan_month = self._get_order_data_per_cus_chan()  # 得到每个代理商每个渠道的提货
-        self._order_cus_sales_chan_month = self._get_order_data_per_cus_sales_chan()  # 得到每个代理商每个销售渠道的提货
+        self._order_sku_month = self._get_month_order_per_sku()  # 得到每个SKU每个月的提货
+        self._order_cate1_month = self._get_month_order_per_cate1()  # 得到每个大类每个月的提货
+        self._order_cate2_month = self._get_month_order_per_cate2()  # 得到每个小类每个月的提货
+        self._order_cus_cate1_month = self._get_month_order_per_cus_cate1()  # 得到每个代理商每个大类的提货
+        self._order_cus_cate2_month = self._get_month_order_per_cus_cate2()  # 得到每个代理商每个小类的提货
+        self._order_cus_chan_month = self._get_month_order_per_cus_chan()  # 得到每个代理商每个渠道的提货
+        self._order_cus_sales_chan_month = self._get_month_order_per_cus_sales_chan()  # 得到每个代理商每个销售渠道的提货
 
     def _get_all_cates(self, categories):
         if isinstance(categories, list):
@@ -56,10 +57,10 @@ class Level3OrderDataLoader(BaseDataLoader):
         return all_cates
 
     def _get_data_path(self):
-        filename = "m111-order_%s.txt" % self._data_flag
-        return os.path.join(ORDER_DATA_DIR, self._data_flag, filename)
+        filename = "m111-order_%s.txt" % self._version_flag
+        return os.path.join(ORDER_DATA_DIR, self._version_flag, filename)
 
-    def _load_order_data(self, need_unitize=True):
+    def _get_order_data(self, need_unitize=True):
         print("[INFO] Start loading order data...")
         order_data_path = self._get_data_path()
         order = pd.read_csv(
@@ -73,8 +74,7 @@ class Level3OrderDataLoader(BaseDataLoader):
         return order
 
     def _preprocess_order_data(self, order, need_unitize=True):
-        all_cate_codes = set([CATE_NAME_2_CATE_CODE[cate] for cate in self._all_cates])
-        order = order.loc[order.first_cate_code.isin(all_cate_codes)]
+        order = order.loc[order.first_cate_code.isin(self._all_cate_codes)]
         order = order.loc[order.order_date >= '2015-09-01']
         order = order.loc[~order.customer_code.str.contains('\\N', regex=False)]
         removed_column_names = [
@@ -97,7 +97,7 @@ class Level3OrderDataLoader(BaseDataLoader):
             order['ord_amount'] = order.ord_amount / 10000
         return order
 
-    def _get_order_data_per_cus_sku(self):
+    def _get_month_order_per_cus_sku(self):
         """Get monthly order data per customer per sku."""
         tmp = self._order.copy()
         tmp['order_month'] = tmp.order_date.astype(str).apply(lambda x: x[:7])
@@ -108,7 +108,7 @@ class Level3OrderDataLoader(BaseDataLoader):
             start='2015-09-30', periods=len(order_cus_sku_month.columns), freq='M')
         return order_cus_sku_month
 
-    def _get_pre15_order_data_per_cus_sku(self):
+    def _get_pre15_order_per_cus_sku(self):
         """Get half monthly order data per customer per sku."""
         tmp = self._order.copy()
         tmp['day'] = tmp.order_date.dt.day
@@ -122,7 +122,7 @@ class Level3OrderDataLoader(BaseDataLoader):
         order_cus_sku_month_pre15 = order_cus_sku_month_pre15.reindex(self._index).fillna(0)
         return order_cus_sku_month_pre15
 
-    def _get_order_data_per_sku(self):
+    def _get_month_order_per_sku(self):
         """Get monthly order data per sku."""
         order_sku_month = self._order_cus_sku_month.groupby(['item_code'])[self._order_cus_sku_month.columns].sum()
         order_sku_month = order_sku_month.reindex(self._index.get_level_values(1))
@@ -175,7 +175,7 @@ class Level3OrderDataLoader(BaseDataLoader):
         sku_info_encoded = sku_info_encoded.reindex(self._index.get_level_values(1))
         return sku_info, sku_info_encoded
 
-    def _get_order_data_per_cate1(self):
+    def _get_month_order_per_cate1(self):
         """Get monthly order data per first level category."""
         order_cate1_month = self._order_cus_sku_month.reset_index()
         order_cate1_month['first_cate_id'] = self._sku_info_encoded.first_cate_id.values
@@ -184,7 +184,7 @@ class Level3OrderDataLoader(BaseDataLoader):
         order_cate1_month = order_cate1_month.reindex(order_cate1_month_index)
         return order_cate1_month
 
-    def _get_order_data_per_cate2(self):
+    def _get_month_order_per_cate2(self):
         """Get monthly order data per first level category."""
         order_cate2_month = self._order_cus_sku_month.reset_index()
         order_cate2_month['second_cate_id'] = self._sku_info_encoded.second_cate_id.values
@@ -193,7 +193,7 @@ class Level3OrderDataLoader(BaseDataLoader):
         order_cate2_month = order_cate2_month.reindex(order_cate2_month_index)
         return order_cate2_month
 
-    def _get_order_data_per_cus_cate1(self):
+    def _get_month_order_per_cus_cate1(self):
         """Get monthly order data per customer per first level category."""
         order_cus_cate1_month = self._order_cus_sku_month.reset_index()
         order_cus_cate1_month['first_cate_id'] = self._sku_info_encoded.first_cate_id.values
@@ -203,7 +203,7 @@ class Level3OrderDataLoader(BaseDataLoader):
         order_cus_cate1_month = order_cus_cate1_month.reindex(order_cus_cate1_month_index)
         return order_cus_cate1_month
 
-    def _get_order_data_per_cus_cate2(self):
+    def _get_month_order_per_cus_cate2(self):
         """Get monthly order data per customer per second level category."""
         order_cus_cate2_month = self._order_cus_sku_month.reset_index()
         order_cus_cate2_month['second_cate_id'] = self._sku_info_encoded.second_cate_id.values
@@ -213,7 +213,7 @@ class Level3OrderDataLoader(BaseDataLoader):
         order_cus_cate2_month = order_cus_cate2_month.reindex(order_cus_cate2_month_index)
         return order_cus_cate2_month
 
-    def _get_order_data_per_cus_chan(self):
+    def _get_month_order_per_cus_chan(self):
         """Get monthly order data per customer per channel."""
         order_cus_chan_month = self._order_cus_sku_month.reset_index()
         order_cus_chan_month['channel_id'] = self._sku_info_encoded.channel_id.values
@@ -223,7 +223,7 @@ class Level3OrderDataLoader(BaseDataLoader):
         order_cus_chan_month = order_cus_chan_month.reindex(order_cus_chan_month_index)
         return order_cus_chan_month
 
-    def _get_order_data_per_cus_sales_chan(self):
+    def _get_month_order_per_cus_sales_chan(self):
         """Get monthly order data per customer per sales channel."""
         order_cus_sales_chan_month = self._order_cus_sku_month.reset_index()
         order_cus_sales_chan_month['sales_chan_id'] = self._sku_info_encoded.sales_chan_id.values
@@ -244,7 +244,7 @@ class Level3OrderDataLoader(BaseDataLoader):
                                                            None, None, None,
                                                            None, None, None,
                                                            self._customer_info_encoded, self._sku_info_encoded,
-                                                           months, gap)
+                                                           months, gap, label_data='order')
         return modify_training_set(X_train, y_train)
 
     def prepare_val_set(self, pred_year, pred_month, gap=0):
@@ -258,7 +258,7 @@ class Level3OrderDataLoader(BaseDataLoader):
                                           None, None, None,
                                           None, None, None,
                                           self._customer_info_encoded, self._sku_info_encoded,
-                                          pred_year, pred_month, gap)
+                                          pred_year, pred_month, gap, label_data='order')
 
     def prepare_testing_set(self, pred_year, pred_month, gap=0):
         return prepare_testing_set_for_level3(self._order_cus_sku_month, None, None,
@@ -336,12 +336,12 @@ class Level3OrderDataLoader(BaseDataLoader):
         return self._month
 
     @property
-    def all_cates(self):
-        return self._all_cates
+    def all_cate_names(self):
+        return self._all_cate_names
 
     @property
-    def data_flag(self):
-        return self._data_flag
+    def version_flag(self):
+        return self._version_flag
 
     @property
     def customer_info(self):

@@ -1,9 +1,0 @@
-{
-  "exp_name": "level1_order_adaboost",
-  "categories": "CRZJ,CRXDG,CRYJ,JSJ,YSJ,RR,DR,CRXWJ",
-
-  "model": "adaboost",
-  "max_depth": 5,
-  "learning_rate": 1.0,
-  "n_estimators": 800
-}

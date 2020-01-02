@@ -15,7 +15,7 @@ from base.base_data_loader import BaseDataLoader
 from global_vars import INV_DATA_DIR, INV_DATA_COLUMN_NAMES
 from util.data_util import transform_channel
 from util.date_util import get_days_of_month
-from util.feature_util import prepare_training_set_for_level3, prepare_val_set, prepare_testing_set
+from util.feature_util import prepare_training_set_for_level3,
 
 
 class Level3InvDataLoader(BaseDataLoader):
