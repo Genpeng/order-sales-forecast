@@ -15,6 +15,7 @@ HDFS_ROOT_DIR = "/user/hive/warehouse/ai_orders_predict.db/"
 ORDER_TABLE_NAME = "init_pl_order"
 DIS_TABLE_NAME = "init_channel_sales"
 INV_TABLE_NAME = "init_channel_inv"
+PLAN_TABLE_NAME = "dm_order_predict_pln_m"
 
 ORDER_DATA_DIR = os.path.join(ROOT_DIR, "data/order")
 DIS_DATA_DIR = os.path.join(ROOT_DIR, "data/dis")
