@@ -1,7 +1,8 @@
 {
   "task_name": "level2_order_predict_history",
-  "task_type": "recent",
+  "task_type": "specified",
   "pred_months": [
+    "2019-11",
     "2019-10",
     "2019-09",
     "2019-08",
