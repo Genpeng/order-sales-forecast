@@ -140,8 +140,8 @@ if __name__ == '__main__':
     # Update future result of level3 order
     # ============================================================================================ #
 
-    curr_year, curr_month, curr_day = get_curr_date()
-    start_dt = datetime.datetime(curr_year, curr_month, curr_day)
+    curr_year, curr_month, _ = get_curr_date()
+    start_dt = datetime.datetime.now()
     data_update_dt = datetime.datetime(curr_year, curr_month, 16, 13, 0, 0)
     if start_dt < data_update_dt:
         raise Exception("[INFO] The data is not ready yet, please try again after 13:00 on the 16th!")
