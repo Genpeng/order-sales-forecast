@@ -140,7 +140,7 @@ def update_history_for_level2_order(level2_data: Level2DataLoader,
     )
 
     add_accuracy(rule_res, 'rule_ord_acc', 'act_ord_qty', 'pred_ord_qty_rule')
-    result['rule_ord_weighted_acc'] = (rule_res.act_ord_qty * rule_res.rule_ord_acc).astype(np.float32)
+    rule_res['rule_ord_weighted_acc'] = (rule_res.act_ord_qty * rule_res.rule_ord_acc).astype(np.float32)
 
     print()
     print("[INFO] The average accuracy of rule is: %.2f" % (rule_res.rule_ord_acc.mean() * 100))
