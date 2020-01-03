@@ -9,7 +9,7 @@ Author: Genpeng Xu
 import time
 import numpy as np
 from bunch import Bunch
-from datetime import date
+from datetime import datetime, date
 
 # Own customized modules
 from infer.sales_infer import SalesInfer
@@ -95,17 +95,17 @@ def update_history_for_level2_order(level2_data: Level2DataLoader,
     rule_res = result.copy()
     order_sku_month_pre6_mean = level2_data.get_pre_order_vals(
         start_pred_year, start_pred_month, 6, True).replace(0, np.nan).mean(axis=1)
-    dis_sku_month_pre3_mean = level2_data.get_pre_dis_vals(
-        start_pred_year, start_pred_month, 3, True).replace(0, np.nan).mean(axis=1)
     order_sku_month_pre1 = level2_data.get_pre_order_vals(
         start_pred_year, start_pred_month, 1, True).mean(axis=1)
+    dis_sku_month_pre3_mean = level2_data.get_pre_dis_vals(
+        start_pred_year, start_pred_month, 3, True).replace(0, np.nan).mean(axis=1)
     dis_sku_month_pre1 = level2_data.get_pre_dis_vals(
         start_pred_year, start_pred_month, 1, True).mean(axis=1)
     plan_sku_month_mean = plan_data.plan_sku_month_mean
 
     rule_res['ord_sku_month_pre6_mean'] = rule_res.item_code.map(order_sku_month_pre6_mean)
-    rule_res['dis_sku_month_pre3_mean'] = rule_res.item_code.map(dis_sku_month_pre3_mean)
     rule_res['ord_sku_month_pre1'] = rule_res.item_code.map(order_sku_month_pre1)
+    rule_res['dis_sku_month_pre3_mean'] = rule_res.item_code.map(dis_sku_month_pre3_mean)
     rule_res['dis_sku_month_pre1'] = rule_res.item_code.map(dis_sku_month_pre1)
     rule_res['plan_sku_month_mean'] = rule_res.item_code.map(plan_sku_month_mean)
 
@@ -118,14 +118,16 @@ def update_history_for_level2_order(level2_data: Level2DataLoader,
     rule_res['online_offline_flag'] = rule_res.item_code.map(sku_info_dict['sales_chan_name']).fillna('未知')
     rule_res['project_flag'] = rule_res.item_code.map(sku_info_dict['project_flag']).fillna('未知')
 
-    temp = level2_data.get_pre_order_vals(
+    order_sku_month_pre24_mean = level2_data.get_pre_order_vals(
         start_pred_year, start_pred_month, 24, True).replace(0, np.nan).mean(axis=1)
-    curr_new_items = set(temp.loc[temp.isna()].index)
-    temp = level2_data.get_pre_dis_vals(start_pred_year, start_pred_month, 3, True)
-    temp['num_not_null'] = ((temp > 0) * 1).sum(axis=1)
-    new_items_by_dis = set(temp.loc[(temp.num_not_null == 1) & (temp.iloc[:, 2] > 0)].index)
-    temp = plan_data.get_one_month(true_pred_year, true_pred_month, True)
-    rule_res['demand'] = rule_res.item_code.map(temp)
+    curr_new_items = set(order_sku_month_pre24_mean.loc[order_sku_month_pre24_mean.isna()].index)
+
+    dis_sku_month_pre3 = level2_data.get_pre_dis_vals(start_pred_year, start_pred_month, 3, True)
+    dis_sku_month_pre3['num_not_null'] = ((dis_sku_month_pre3 > 0) * 1).sum(axis=1)
+    new_items_by_dis = set(dis_sku_month_pre3.loc[(dis_sku_month_pre3.num_not_null == 1) & (dis_sku_month_pre3.iloc[:, 2] > 0)].index)
+
+    demand = plan_data.get_one_month(true_pred_year, true_pred_month, True)
+    rule_res['demand'] = rule_res.item_code.map(demand)
     rule_res['is_curr_new'] = rule_res.item_code.apply(lambda x: 1 if x in curr_new_items else 0)
     rule_res['is_new_by_dis'] = rule_res.item_code.apply(lambda x: 1 if x in new_items_by_dis else 0)
     rule_res['demand_dis_ratio'] = rule_res.demand / rule_res.dis_sku_month_pre3_mean
@@ -137,12 +139,12 @@ def update_history_for_level2_order(level2_data: Level2DataLoader,
         axis=1
     )
 
-    add_accuracy(result, 'rule_ord_acc', 'act_ord_qty', 'pred_ord_qty_rule')
-    result['rule_ord_weighted_acc'] = (result.act_ord_qty * result.rule_ord_acc).astype(np.float32)
+    add_accuracy(rule_res, 'rule_ord_acc', 'act_ord_qty', 'pred_ord_qty_rule')
+    result['rule_ord_weighted_acc'] = (rule_res.act_ord_qty * rule_res.rule_ord_acc).astype(np.float32)
 
     print()
-    print("[INFO] The average accuracy of rule is: %.2f" % (result.rule_ord_acc.mean() * 100))
-    print("[INFO] The weighted accuracy of rule is: %.2f" % (result.rule_ord_weighted_acc.sum() / result.act_ord_qty.sum() * 100))
+    print("[INFO] The average accuracy of rule is: %.2f" % (rule_res.rule_ord_acc.mean() * 100))
+    print("[INFO] The weighted accuracy of rule is: %.2f" % (rule_res.rule_ord_weighted_acc.sum() / rule_res.act_ord_qty.sum() * 100))
 
     result['pred_ord_qty'] = result.pred_ord_qty * 0.5 + rule_res.pred_ord_qty_rule * 0.5
 
@@ -188,7 +190,7 @@ if __name__ == '__main__':
     # ============================================================================================ #
 
     # curr_year, curr_month, _ = get_curr_date()
-    curr_year, curr_month, _ = 2019, 12, 10
+    curr_year, curr_month, _ = 2019, 12, 17
     gap = 1  # 更新历史，默认预测M1月
     year_upper_bound, month_upper_bound = infer_month(curr_year, curr_month, offset=-(gap+1))
 
@@ -206,6 +208,11 @@ if __name__ == '__main__':
                                    need_unitize=config.need_unitize,
                                    label_data='order')
     plan_data = PlanData(curr_year, curr_month, need_unitize=config.need_unitize)
+    # if datetime.now() < datetime(curr_year, curr_month, 16, 13, 0, 0):
+    #     p_y, p_m = infer_month(curr_year, curr_month, -1)
+    #     plan_data = PlanData(p_y, p_m, need_unitize=config.need_unitize)
+    # else:
+    #     plan_data = PlanData(curr_year, curr_month, need_unitize=config.need_unitize)
 
     for ym_str in pred_months:
         start_pred_year, start_pred_month = map(int, ym_str.split('-'))
