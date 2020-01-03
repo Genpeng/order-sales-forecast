@@ -189,8 +189,7 @@ if __name__ == '__main__':
     # Update forecast result of level2 order
     # ============================================================================================ #
 
-    # curr_year, curr_month, _ = get_curr_date()
-    curr_year, curr_month, _ = 2019, 12, 17
+    curr_year, curr_month, _ = get_curr_date()
     gap = 1  # 更新历史，默认预测M1月
     year_upper_bound, month_upper_bound = infer_month(curr_year, curr_month, offset=-(gap+1))
 
@@ -207,12 +206,11 @@ if __name__ == '__main__':
                                    categories=config.categories,
                                    need_unitize=config.need_unitize,
                                    label_data='order')
-    plan_data = PlanData(curr_year, curr_month, need_unitize=config.need_unitize)
-    # if datetime.now() < datetime(curr_year, curr_month, 16, 13, 0, 0):
-    #     p_y, p_m = infer_month(curr_year, curr_month, -1)
-    #     plan_data = PlanData(p_y, p_m, need_unitize=config.need_unitize)
-    # else:
-    #     plan_data = PlanData(curr_year, curr_month, need_unitize=config.need_unitize)
+    if datetime.now() < datetime(curr_year, curr_month, 16, 13, 0, 0):
+        p_y, p_m = infer_month(curr_year, curr_month, -1)
+        plan_data = PlanData(p_y, p_m, need_unitize=config.need_unitize)
+    else:
+        plan_data = PlanData(curr_year, curr_month, need_unitize=config.need_unitize)
 
     for ym_str in pred_months:
         start_pred_year, start_pred_month = map(int, ym_str.split('-'))
