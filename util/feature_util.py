@@ -129,7 +129,8 @@ def get_val(df: pd.DataFrame,
 
 
 def get_pre_vals(df: pd.DataFrame,
-                 year: int, month: int,
+                 year: int,
+                 month: int,
                  periods: int = 3,
                  need_index: bool = False) -> pd.DataFrame:
     end_dt = date(year, month, 1)
