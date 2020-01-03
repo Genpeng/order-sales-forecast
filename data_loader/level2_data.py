@@ -173,7 +173,10 @@ class Level2DataLoader(BaseDataLoader):
     def _get_dis_data(self, need_unitize=True):
         print("[INFO] Start loading distribution data...")
         filepath = self._get_dis_data_filepath()
-        dis = pd.read_csv(filepath, sep='\u001e', header=None, names=DIS_DATA_COLUMN_NAMES, parse_dates=[0])
+        dis = pd.read_csv(
+            filepath, sep='\u001e', header=None, names=DIS_DATA_COLUMN_NAMES,
+            parse_dates=[0], dtype={5: str, 7: str, 15: str, 22: str, 27: str, 28: str}
+        )
         print("[INFO] Loading finished!")
         print("[INFO] Start preprocessing distribution data...")
         dis = self._preprocess_dis_data(dis, need_unitize)
@@ -221,7 +224,10 @@ class Level2DataLoader(BaseDataLoader):
     def _get_inv_data(self, need_unitize=True):
         print("[INFO] Start loading inventory data...")
         filepath = self._get_inv_data_filepath()
-        inv = pd.read_csv(filepath, sep='\u001e', header=None, names=INV_DATA_COLUMN_NAMES, parse_dates=[0])
+        inv = pd.read_csv(
+            filepath, sep='\u001e', header=None, names=INV_DATA_COLUMN_NAMES,
+            parse_dates=[0], dtype={3: str, 5: str}
+        )
         print("[INFO] Loading finished!")
         print("[INFO] Start preprocessing inventory data...")
         inv = self._preprocess_inv_data(inv, need_unitize)
