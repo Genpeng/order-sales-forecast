@@ -42,8 +42,8 @@ class Level2DataLoader(BaseDataLoader):
         self._order_sku_month = self._get_month_order_per_sku()  # 每个SKU每个月的提货
         self._dis = self._get_dis_data(need_unitize)  # 分销数据
         self._dis_sku_month = self._get_month_dis_per_sku()  # 每个SKU每个月的分销
-        self._inv = self._get_inv_data(need_unitize)  # 库存数据
-        self._inv_sku_month = self._get_month_inv_per_sku()  # 每个SKU每个月的库存
+        # self._inv = self._get_inv_data(need_unitize)  # 库存数据
+        # self._inv_sku_month = self._get_month_inv_per_sku()  # 每个SKU每个月的库存
         self._index = self._get_index(label_data)
         self._reset_index()
         self._sku_info, self._sku_info_encoded = self._get_sku_info()  # 得到SKU的信息
@@ -275,7 +275,7 @@ class Level2DataLoader(BaseDataLoader):
     def _reset_index(self) -> None:
         self._order_sku_month = self._order_sku_month.reindex(self._index)
         self._dis_sku_month = self._dis_sku_month.reindex(self._index)
-        self._inv_sku_month = self._inv_sku_month.reindex(self._index)
+        # self._inv_sku_month = self._inv_sku_month.reindex(self._index)
 
     def prepare_training_set(self, months, gap=0):
         X_train, y_train = prepare_training_set_for_level2(self._order_sku_month, None, None,
