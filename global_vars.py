@@ -264,6 +264,9 @@ ITEM_LIST_MYSQL_CONFIG = {
     "mode": "readonly"
 }
 
+UAT_ESB_URL = "http://10.16.41.76:7801/transactREST"
+PROD_ESB_URL = "http://10.18.1.116:7801/transactREST"
+
 if __name__ == '__main__':
     print(ROOT_DIR)
     print(ORDER_DATA_DIR)

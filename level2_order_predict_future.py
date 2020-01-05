@@ -15,7 +15,8 @@ from datetime import datetime
 from typing import Union, List
 
 # Own customized modules
-from global_vars import SIT_DB_CONFIG, UAT_DB_CONFIG, PROD_DB_CONFIG
+from global_vars import (SIT_DB_CONFIG, UAT_DB_CONFIG, PROD_DB_CONFIG,
+                         UAT_ESB_URL, PROD_ESB_URL)
 from data_loader.level2_data import Level2DataLoader
 from data_loader.item_list import ItemList
 from data_loader.plan_data import PlanData
@@ -25,6 +26,7 @@ from util.feature_util import modify_training_set, rule_func
 from util.config_util import get_args, process_config
 from util.date_util import (get_curr_date, infer_month, get_pre_months,
                             timestamp_to_time, get_days_of_month)
+from util.esb_util import push_to_esb
 
 
 def update_future_for_level2_order(model_config: Bunch,
@@ -98,14 +100,18 @@ def update_future_for_level2_order(model_config: Bunch,
     result = result.loc[result.item_code.apply(lambda x: item_list.is_white_items(x))]
 
     if db_config.env == 'SIT':
-        writer = KuduResultWriter(Bunch(SIT_DB_CONFIG))
+        kudu_config = SIT_DB_CONFIG
+        esb_url = UAT_ESB_URL
     elif db_config.env == 'UAT':
-        writer = KuduResultWriter(Bunch(UAT_DB_CONFIG))
+        kudu_config = UAT_DB_CONFIG
+        esb_url = UAT_ESB_URL
     elif db_config.env == 'PROD':
-        writer = KuduResultWriter(Bunch(PROD_DB_CONFIG))
+        kudu_config = PROD_DB_CONFIG
+        esb_url = PROD_ESB_URL
     else:
         raise Exception("[INFO] The environment name of database to write result is illegal!!!")
 
+    writer = KuduResultWriter(Bunch(kudu_config))
     writer.clear_months_after(db_config.table1_name, 'order_date', start_pred_year, start_pred_month)
     writer.upsert(result, db_config.table1_name, db_config.batch_size)
 
@@ -180,7 +186,8 @@ def update_future_for_level2_order(model_config: Bunch,
 
     dis_sku_month_pre3 = level2_data.get_pre_dis_vals(start_pred_year, start_pred_month, 3, True)
     dis_sku_month_pre3['num_not_null'] = ((dis_sku_month_pre3 > 0) * 1).sum(axis=1)
-    new_items_by_dis = set(dis_sku_month_pre3.loc[(dis_sku_month_pre3.num_not_null == 1) & (dis_sku_month_pre3.iloc[:, 2] > 0)].index)
+    new_items_by_dis = set(
+        dis_sku_month_pre3.loc[(dis_sku_month_pre3.num_not_null == 1) & (dis_sku_month_pre3.iloc[:, 2] > 0)].index)
 
     demand = plan_data.get_one_month(m1_year, m1_month, True)
     rule_res['demand'] = rule_res.item_code.map(demand)
@@ -196,23 +203,48 @@ def update_future_for_level2_order(model_config: Bunch,
     )
 
     result['pred_ord_qty_m1'] = result.pred_ord_qty_m1 * 0.5 + rule_res.pred_ord_qty_rule * 0.5
-
-    result['pred_ord_amount_m1'] = np.round(result.pred_ord_qty_m1 * result.item_price, decimals=4 if need_unitize else 0)
-    result['pred_ord_amount_m2'] = np.round(result.pred_ord_qty_m2 * result.item_price, decimals=4 if need_unitize else 0)
-    result['pred_ord_amount_m3'] = np.round(result.pred_ord_qty_m3 * result.item_price, decimals=4 if need_unitize else 0)
+    result['avg_dis'] = rule_res['dis_sku_month_pre3_mean'].fillna(0.0)
+    result['pred_ord_amount_m1'] = np.round(result.pred_ord_qty_m1 * result.item_price,
+                                            decimals=4 if need_unitize else 0)
+    result['pred_ord_amount_m2'] = np.round(result.pred_ord_qty_m2 * result.item_price,
+                                            decimals=4 if need_unitize else 0)
+    result['pred_ord_amount_m3'] = np.round(result.pred_ord_qty_m3 * result.item_price,
+                                            decimals=4 if need_unitize else 0)
     result['ord_pred_time'] = timestamp_to_time(time.time())
 
-    if db_config.env == 'SIT':
-        writer = KuduResultWriter(Bunch(SIT_DB_CONFIG))
-    elif db_config.env == 'UAT':
-        writer = KuduResultWriter(Bunch(UAT_DB_CONFIG))
-    elif db_config.env == 'PROD':
-        writer = KuduResultWriter(Bunch(PROD_DB_CONFIG))
-    else:
-        raise Exception("[INFO] The environment name of database to write result is illegal!!!")
+    if need_unitize:
+        result['avg_dis'] = np.round(result.avg_dis * 10000)
+        result['pred_ord_qty_m1'] = np.round(result.pred_ord_qty_m1 * 10000)
+        result['pred_ord_qty_m2'] = np.round(result.pred_ord_qty_m2 * 10000)
+        result['pred_ord_qty_m3'] = np.round(result.pred_ord_qty_m3 * 10000)
+        result['pred_ord_amount_m1'] = np.round(result.pred_ord_amount_m1 * 10000)
+        result['pred_ord_amount_m2'] = np.round(result.pred_ord_amount_m2 * 10000)
+        result['pred_ord_amount_m3'] = np.round(result.pred_ord_amount_m3 * 10000)
 
+    result = result.loc[result.item_code.apply(lambda x: item_list.is_delisting_items(x))]
+    result = result.loc[~(result.manu_code == '')]
+
+    writer = KuduResultWriter(Bunch(kudu_config))
     writer.clear_one_month(db_config.table2_name, 'order_date', m1_year, m1_month)
     writer.upsert(result, db_config.table2_name, db_config.batch_size)
+
+    # Step 5: Push to ESB
+    # ============================================================================================ #
+
+    result['customer_code'] = ''
+    result['attribute1'] = ''
+    result['attribute2'] = ''
+    result['attribute3'] = ''
+    result['attribute4'] = ''
+    result['attribute5'] = ''
+    result.rename(columns={'manu_code': 'manu_name'}, inplace=True)
+    result = result[['bu_code', 'sales_type', 'manu_name',
+                     'area_name', 'customer_code', 'order_date',
+                     'first_cate_name', 'second_cate_name', 'item_code',
+                     'forecast_type', 'avg_dis', 'item_price',
+                     'pred_ord_qty_m1', 'pred_ord_qty_m2', 'pred_ord_qty_m3',
+                     'attribute1', 'attribute2', 'attribute3', 'attribute4', 'attribute5']]
+    push_to_esb(result, esb_url)
 
 
 if __name__ == '__main__':
