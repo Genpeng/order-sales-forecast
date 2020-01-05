@@ -197,9 +197,9 @@ def update_future_for_level2_order(model_config: Bunch,
 
     result['pred_ord_qty_m1'] = result.pred_ord_qty_m1 * 0.5 + rule_res.pred_ord_qty_rule * 0.5
 
-    result['pred_ord_amount_m1'] = np.round(result.pred_ord_qty_m1 * result.item_price, decimals=4)
-    result['pred_ord_amount_m2'] = np.round(result.pred_ord_qty_m2 * result.item_price, decimals=4)
-    result['pred_ord_amount_m3'] = np.round(result.pred_ord_qty_m3 * result.item_price, decimals=4)
+    result['pred_ord_amount_m1'] = np.round(result.pred_ord_qty_m1 * result.item_price, decimals=4 if need_unitize else 0)
+    result['pred_ord_amount_m2'] = np.round(result.pred_ord_qty_m2 * result.item_price, decimals=4 if need_unitize else 0)
+    result['pred_ord_amount_m3'] = np.round(result.pred_ord_qty_m3 * result.item_price, decimals=4 if need_unitize else 0)
     result['ord_pred_time'] = timestamp_to_time(time.time())
 
     if db_config.env == 'SIT':
