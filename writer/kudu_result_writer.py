@@ -96,24 +96,13 @@ class KuduResultWriter(BaseResultWriter):
         _clear_months_after(self._cursor, table_name, date_col, start_year, start_month)
 
 
-def _test_clear_months_after():
+def _test():
     from global_vars import UatDbConfig
     db_config = UatDbConfig()
     writer = KuduResultWriter(db_config)
-    table_name = "m111_level3_order_pred_result"
-    writer.clear_months_after(table_name, 'order_date', 2019, 12)
-
-
-def _test_upsert():
-    import pandas as pd
-    from global_vars import UatDbConfig
-    db_config = UatDbConfig()
-    writer = KuduResultWriter(db_config)
-    result = pd.read_csv("../result.txt")
-    result['order_date'] = result.order_date.astype(str)
-    table_name = "m111_level3_order_pred_result"
-    writer.upsert(result, table_name)
+    table_name = "m111_level2_order_pred_result"
+    writer.clear(table_name)
 
 
 if __name__ == '__main__':
-    _test_upsert()
+    _test()
