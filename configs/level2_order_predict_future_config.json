@@ -22,7 +22,8 @@
   },
   "db_config": {
     "env": "UAT",
-    "table_name": "m111_level2_order_pred_result",
+    "table1_name": "m111_level2_order_pred_result",
+    "table2_name": "m111_level2_order_detailed_pred_result",
     "batch_size": 5000
   }
 }
