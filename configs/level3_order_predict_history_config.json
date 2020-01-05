@@ -1,6 +1,6 @@
 {
   "task_name": "level3_order_predict_history",
-  "task_type": "recent",
+  "task_type": "specified",
   "pred_months": [
     "2019-10",
     "2019-09",
@@ -23,8 +23,8 @@
       "learning_rate": 0.01,
       "objective": "regression",
       "random_state": 89,
-      "n_jobs": 2,
-      "num_iterations": 500,
+      "n_jobs": 16,
+      "num_iterations": 5,
       "early_stopping_round": 150,
       "min_data_in_leaf": 200,
       "feature_fraction": 0.9,
