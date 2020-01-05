@@ -323,6 +323,12 @@ class Level2DataLoader(BaseDataLoader):
         months_pred = ['%d%02d' % infer_month(start_pred_year, start_pred_month, i) for i in range(len(preds))]
         return pd.DataFrame(np.array(preds).transpose(), index=self._index, columns=months_pred)
 
+    def add_index_v2(self, preds: Union[np.ndarray, List[np.ndarray]]) -> pd.DataFrame:
+        if isinstance(preds, np.ndarray):
+            preds = [preds]
+        months_pred = ['pred_ord_qty_m%d' % i for i in range(1, len(preds) + 1)]
+        return pd.DataFrame(np.array(preds).transpose(), index=self._index, columns=months_pred)
+
     def decorate_pred_result(self,
                              preds: Union[np.ndarray, List[np.ndarray]],
                              start_pred_year: int,
