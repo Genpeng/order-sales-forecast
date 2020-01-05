@@ -360,6 +360,21 @@ class Level2DataLoader(BaseDataLoader):
                           need_index: bool = True) -> Union[np.ndarray, pd.Series]:
         return get_val(self._dis_sku_month, year, month, need_index)
 
+    def predict_by_history(self, start_pred_year, start_pred_month, gap=4, left_bound_dt='2015-09'):
+        left_bound_year, left_bound_month = map(int, left_bound_dt.split('-'))
+        start_aver_year, start_aver_month = infer_month(start_pred_year, start_pred_month, gap)
+        pred_len = 12 - gap
+        history = []
+        for i in range(1, 4):
+            if (start_aver_year - i > left_bound_year) or \
+                    (start_aver_year - i == left_bound_year and start_aver_month >= left_bound_month):
+                start_dt = "%d-%02d-%d" % (start_aver_year - i, start_aver_month, 1)
+                tmp = self._order_sku_month[pd.date_range(start_dt, periods=pred_len, freq='M')].values
+                history.append(tmp)
+        result = np.mean(np.array(history), axis=0)
+        months_pred = ['%d%02d' % infer_month(start_aver_year, start_aver_month, i) for i in range(pred_len)]
+        return pd.DataFrame(result, index=self._index, columns=months_pred)
+
     @property
     def year(self):
         return self._year
