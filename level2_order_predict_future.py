@@ -137,9 +137,7 @@ def update_future_for_level2_order(model_config: Bunch,
     result['forecast_type'] = "内销整机预测"
 
     m1_year, m1_month = infer_month(start_pred_year, start_pred_month, 1)
-    result['order_date'] = "%d-%02d-%02d" % (m1_year,
-                                             m1_month,
-                                             get_days_of_month(m1_year, m1_month))
+    result['order_date'] = "%d-%02d" % (m1_year, m1_month)
 
     sku_info_dict = level2_data.sku_info.to_dict()
     result['item_name'] = result.item_code.map(sku_info_dict['item_name'])
@@ -238,6 +236,9 @@ def update_future_for_level2_order(model_config: Bunch,
     result['attribute4'] = ''
     result['attribute5'] = ''
     result.rename(columns={'manu_code': 'manu_name'}, inplace=True)
+    result['order_date'] = "%d-%02d-%02d" % (m1_year,
+                                             m1_month,
+                                             get_days_of_month(m1_year, m1_month))
     result = result[['bu_code', 'sales_type', 'manu_name',
                      'area_name', 'customer_code', 'order_date',
                      'first_cate_name', 'second_cate_name', 'item_code',

@@ -100,7 +100,7 @@ def _test():
     from global_vars import UatDbConfig
     db_config = UatDbConfig()
     writer = KuduResultWriter(db_config)
-    table_name = "m111_level2_order_pred_result"
+    table_name = "m111_level2_order_detailed_pred_result"
     writer.clear(table_name)
 
 
