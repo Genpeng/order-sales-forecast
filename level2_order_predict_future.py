@@ -220,8 +220,8 @@ def update_future_for_level2_order(model_config: Bunch,
         result['pred_ord_amount_m2'] = np.round(result.pred_ord_amount_m2 * 10000)
         result['pred_ord_amount_m3'] = np.round(result.pred_ord_amount_m3 * 10000)
 
-    result = result.loc[result.item_code.apply(lambda x: item_list.is_delisting_items(x))]
-    # result = result.loc[~(result.manu_code == '')]
+    result = result.loc[~result.item_code.apply(lambda x: item_list.is_delisting_items(x))]
+    result = result.loc[~(result.manu_code == '')]
 
     writer = KuduResultWriter(Bunch(kudu_config))
     writer.clear_one_month(db_config.table2_name, 'order_date', m1_year, m1_month)
