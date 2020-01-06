@@ -70,6 +70,7 @@ def _batch_upsert_data(cursor, df, table_name, batch_size=5000):
             return
 
     print("[INFO] Upsert finished! ( ^ _ ^ )V")
+    print("[INFO] Successfully upsert %d records." % len(df))
     print("[INFO] Done in %s seconds." % (time.time() - t0))
 
 
