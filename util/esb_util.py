@@ -61,5 +61,4 @@ def push_to_esb(df, esb_url):
         try_time += 1
         if try_time > 10:
             raise Exception("[INFO] Fail to push data to ESB!!!")
-    print(try_time)
     print("[INFO] Push finished! ( ^ _ ^ ) V")
