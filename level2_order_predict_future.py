@@ -44,6 +44,7 @@ def update_future_for_level2_order(model_config: Bunch,
     level2_data = Level2DataLoader(start_pred_year, start_pred_month,
                                    categories=categories, need_unitize=need_unitize, label_data='order')
     plan_data = PlanData(start_pred_year, start_pred_month, need_unitize=need_unitize)
+    item_list = ItemList(start_pred_year, start_pred_month)
 
     # Step 2: Training and predicting
     # ============================================================================================ #
@@ -96,7 +97,6 @@ def update_future_for_level2_order(model_config: Bunch,
     result['pred_ord_amount'] = np.round(result.pred_ord_qty * result.item_price, decimals=4)
     result['ord_pred_time'] = timestamp_to_time(time.time())
 
-    item_list = ItemList(start_pred_year, start_pred_month)
     result = result.loc[result.item_code.apply(lambda x: item_list.is_white_items(x))]
 
     if db_config.env == 'SIT':
@@ -148,6 +148,7 @@ def update_future_for_level2_order(model_config: Bunch,
     result['item_price'] = result.item_code.map(sku_info_dict['item_price'])
 
     item_list_dict = item_list.items.copy().set_index('item_code').to_dict()
+    print(len(item_list_dict['manu_code']))
     result['manu_code'] = result.item_code.map(item_list_dict['manu_code']).fillna('')
     result['area_name'] = ''
 
@@ -220,7 +221,7 @@ def update_future_for_level2_order(model_config: Bunch,
         result['pred_ord_amount_m3'] = np.round(result.pred_ord_amount_m3 * 10000)
 
     result = result.loc[result.item_code.apply(lambda x: item_list.is_delisting_items(x))]
-    result = result.loc[~(result.manu_code == '')]
+    # result = result.loc[~(result.manu_code == '')]
 
     writer = KuduResultWriter(Bunch(kudu_config))
     writer.clear_one_month(db_config.table2_name, 'order_date', m1_year, m1_month)
@@ -245,7 +246,7 @@ def update_future_for_level2_order(model_config: Bunch,
                      'forecast_type', 'avg_dis', 'item_price',
                      'pred_ord_qty_m1', 'pred_ord_qty_m2', 'pred_ord_qty_m3',
                      'attribute1', 'attribute2', 'attribute3', 'attribute4', 'attribute5']]
-    push_to_esb(result, esb_url)
+    # push_to_esb(result, esb_url)
 
 
 if __name__ == '__main__':
