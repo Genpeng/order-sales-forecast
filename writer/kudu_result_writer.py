@@ -51,7 +51,7 @@ def _clear_months_after(cursor, table_name, date_col, start_year, start_month):
 
 
 def _batch_upsert_data(cursor, df, table_name, batch_size=5000):
-    print("[INFO] Start inserting or updating data...")
+    print("[INFO] Start upsert data into '%s'..." % table_name)
     t0 = time.time()
 
     l = len(df)  # the size of data
