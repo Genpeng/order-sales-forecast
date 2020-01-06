@@ -845,6 +845,241 @@ def prepare_testing_set_for_level2(order, dis, inv,
     return X_test
 
 
+def prepare_dataset_for_level1(order: pd.DataFrame,
+                               dis: pd.DataFrame,
+                               inv: pd.DataFrame,
+                               year: int,
+                               month: int,
+                               gap: int = 1,
+                               add_cate_feat: bool = True,
+                               is_train: bool = True,
+                               name_prefix: str = None,
+                               label_data: str = 'order') -> Union[pd.DataFrame, Tuple[pd.DataFrame, np.ndarray]]:
+    """
+    Prepare training or validation or testing set.
+
+    Arguments:
+        order : DataFrame, order quantity per month
+        dis : DataFrame, distribution quantity per month
+        inv : DataFrame, inventory quantity per month
+        year : int, the year to start predict
+        month : int, the month to start predict
+        gap : int, the time interval from start time
+        add_cate_feat: bool, true if add categorical features
+        is_train : boolean, true if prepare training set
+        name_prefix : str, the prefix of each feature name
+        label_data: str, the type of data to predict
+
+    Returns:
+        X : DataFrame, all the features
+        y (optional) : ndarry, all the labels
+    """
+    X = {}
+    true_pred_year, true_pred_month = infer_month(year, month, gap)
+
+    # 提货的统计特征
+    # if order is not None:
+    #     for i in [3, 6]:
+    #         tmp = get_pre_vals(order, year, month, periods=i)  # 前i个月提货量
+    #         X['ord_diff_mean_pre_%s' % i] = tmp.diff(axis=1).mean(axis=1).values  # 前i个月提货量的平均一阶差分
+    #         X['ord_sum_decay_pre_%s' % i] = (tmp * np.power(0.9, np.arange(i)[::-1])).sum(
+    #             axis=1).values  # 前i个月提货量的和（带衰减）
+    #         X['ord_mean_pre_%s' % i] = tmp.mean(axis=1).values  # 前i个月提货量的平均值
+    #         X['ord_median_pre_%s' % i] = tmp.median(axis=1).values  # 前i个月提货量的中位数
+    #         X['ord_max_pre_%s' % i] = tmp.max(axis=1).values  # 前i个月提货量的最大值
+    #         X['ord_min_pre_%s' % i] = tmp.min(axis=1).values  # 前i个月提货量的最小值
+    #         X['ord_std_pre_%s' % i] = tmp.std(axis=1).values  # 前i个月提货量的标准差
+
+    # 分销的统计特征
+    # if dis is not None:
+    #     for i in [3, 6]:
+    #         tmp = get_pre_vals(dis, year, month, periods=i)  # 前i个月分销量
+    #         X['dis_diff_mean_pre_%s' % i] = tmp.diff(axis=1).mean(axis=1).values  # 前i个月分销量的平均一阶差分
+    #         X['dis_sum_decay_pre_%s' % i] = (tmp * np.power(0.9, np.arange(i)[::-1])).sum(
+    #             axis=1).values  # 前i个月分销量的和（带衰减）
+    #         X['dis_mean_pre_%s' % i] = tmp.mean(axis=1).values  # 前i个月分销量的均值
+    #         X['dis_median_pre_%s' % i] = tmp.median(axis=1).values  # 前i个月分销量的中位数
+    #         X['dis_max_pre_%s' % i] = tmp.max(axis=1).values  # 前i个月分销量的最大值
+    #         X['dis_min_pre_%s' % i] = tmp.min(axis=1).values  # 前i个月分销量的最小值
+    #         X['dis_std_pre_%s' % i] = tmp.std(axis=1).values  # 前i个月分销量的标准差
+
+    # 库存的统计特征
+    # if inv is not None:
+    #     for i in [3, 6]:
+    #         tmp = get_pre_vals(inv, year, month, periods=i)  # 前i个月库存量
+    #         X['inv_diff_mean_pre_%s' % i] = tmp.diff(axis=1).mean(axis=1).values  # 前i个月库存量的平均一阶差分
+    #         X['inv_sum_decay_pre_%s' % i] = (tmp * np.power(0.9, np.arange(i)[::-1])).sum(
+    #             axis=1).values  # 前i个月库存量的和（带衰减）
+    #         X['inv_mean_pre_%s' % i] = tmp.mean(axis=1).values  # 前i个月库存量的均值
+    #         X['inv_median_pre_%s' % i] = tmp.median(axis=1).values  # 前i个月库存量的中位数
+    #         X['inv_max_pre_%s' % i] = tmp.max(axis=1).values  # 前i个月库存量的最大值
+    #         X['inv_min_pre_%s' % i] = tmp.min(axis=1).values  # 前i个月库存量的最小值
+    #         X['inv_std_pre_%s' % i] = tmp.std(axis=1).values  # 前i个月库存量的标准差
+
+    # 提货月数特征
+    # if order is not None:
+    #     for i in [3, 6]:
+    #         tmp = get_pre_vals(order, year, month, periods=i)
+    #         X['has_ord_pre_%s' % i] = (tmp > 0).sum(axis=1).values  # 前i个月有提货的天数
+    #         X['last_ord_pre_%s' % i] = i - ((tmp > 0) * np.arange(i)).max(axis=1).values  # 前i个月距离上一次有提货的天数
+    #         X['first_ord_pre_%s' % i] = ((tmp > 0) * np.arange(i, 0, -1)).max(axis=1).values  # 前i个月距离第一次有提货的天数
+
+    # 分销月数特征
+    # if dis is not None:
+    #     for i in [3, 6]:
+    #         tmp = get_pre_vals(dis, year, month, periods=i)
+    #         X['has_dis_pre_%s' % i] = (tmp > 0).sum(axis=1).values  # 前i个月有分销的天数
+    #         X['last_dis_pre_%s' % i] = i - ((tmp > 0) * np.arange(i)).max(axis=1).values  # 前i个月距离上一次有分销的天数
+    #         X['first_dis_pre_%s' % i] = ((tmp > 0) * np.arange(i, 0, -1)).max(axis=1).values  # 前i个月距离第一次有分销的天数
+
+    # 库存月数特征
+    # if inv is not None:
+    #     for i in [3, 6]:
+    #         tmp = get_pre_vals(inv, year, month, periods=i)
+    #         X['has_inv_pre_%s' % i] = (tmp > 0).sum(axis=1).values  # 前i个月有库存的天数
+    #         X['last_inv_pre_%s' % i] = i - ((tmp > 0) * np.arange(i)).max(axis=1).values  # 前i个月距离上一次有库存的天数
+    #         X['first_inv_pre_%s' % i] = ((tmp > 0) * np.arange(i, 0, -1)).max(axis=1).values  # 前i个月距离第一次有库存的天数
+
+    # 前i个月的提货量
+    if order is not None:
+        for i in range(1, 7):
+            y_tmp, m_tmp = infer_month(year, month, offset=-i)
+            X['ord_pre_%s' % i] = get_val(order, y_tmp, m_tmp)
+
+    # 前i个月分销量
+    if dis is not None:
+        for i in range(1, 7):
+            y_tmp, m_tmp = infer_month(year, month, offset=-i)
+            X['dis_pre_%s' % i] = get_val(dis, y_tmp, m_tmp)
+
+    # 前i个月的库存量
+    if inv is not None:
+        for i in range(1, 7):
+            y_tmp, m_tmp = infer_month(year, month, offset=-i)
+            X['inv_pre_%s' % i] = get_val(order, y_tmp, m_tmp)
+
+    # 历史同期前后3个月的提货
+    # if order is not None:
+    #     y_his, m_his = infer_month(year, month, offset=-12)  # 历史同期
+    #     for i in range(-3, 4):
+    #         y_curr, m_curr = infer_month(y_his, m_his, offset=i)
+    #         X['ord_his_%s' % i] = get_val(order, y_curr, m_curr)
+
+    # 历史同期前后3个月的分销
+    # if dis is not None:
+    #     y_his, m_his = infer_month(year, month, offset=-12)  # 历史同期
+    #     for i in range(-3, 4):
+    #         y_curr, m_curr = infer_month(y_his, m_his, offset=i)
+    #         X['dis_his_%s' % i] = get_val(dis, y_curr, m_curr)
+
+    # 历史同期前后3个月的库存
+    # if inv is not None:
+    #     y_his, m_his = infer_month(year, month, offset=-12)  # 历史同期
+    #     for i in range(-3, 4):
+    #         y_curr, m_curr = infer_month(y_his, m_his, offset=i)
+    #         X['inv_his_%s' % i] = get_val(inv, y_curr, m_curr)
+
+    X = pd.DataFrame(X)
+
+    if add_cate_feat:
+        X['pred_month'] = true_pred_month
+        X['pred_quarter'] = X.pred_month.apply(lambda x: get_quarter(x))
+
+        X['is_spring_fest_pre'] = X.pred_month.apply(lambda x: is_spring_festival_pre(true_pred_year, x))
+        X['is_spring_fest'] = X.pred_month.apply(lambda x: is_spring_festival(true_pred_year, x))
+        X['is_spring_fest_after'] = X.pred_month.apply(lambda x: is_spring_festival_after(true_pred_year, x))
+        # X['is_home_decoration'] = X.pred_month.apply(lambda x: is_home_decoration(x))
+        X['is_six_eighteen_pre_2'] = X.pred_month.apply(lambda x: is_six_eighteen_pre_2(x))
+        X['is_six_eighteen_pre_1'] = X.pred_month.apply(lambda x: is_six_eighteen_pre_1(x))
+        X['is_six_eighteen'] = X.pred_month.apply(lambda x: is_six_eighteen(x))
+        X['is_six_eighteen_after'] = X.pred_month.apply(lambda x: is_six_eighteen_after(x))
+        X['is_merger_time'] = X.pred_month.apply(lambda x: is_merger_time(true_pred_year, x))
+        X['is_double_eleven_pre_2'] = X.pred_month.apply(lambda x: is_double_eleven_pre_2(x))
+        X['is_double_eleven_pre_1'] = X.pred_month.apply(lambda x: is_double_eleven_pre_1(x))
+        X['is_double_eleven'] = X.pred_month.apply(lambda x: is_double_eleven(x))
+        X['is_double_twelve'] = X.pred_month.apply(lambda x: is_double_twelve(x))
+
+        if order is not None:
+            tmp = order.copy()
+        elif dis is not None:
+            tmp = dis.copy()
+        else:
+            tmp = inv.copy()
+        index_df = tmp.reset_index()
+        index_df.drop(tmp.columns, axis=1, inplace=True)
+        column_names = set(index_df.columns)
+        del tmp
+        gc.collect()
+
+        if 'customer_code' in column_names:
+            customer_list = CustomerList()
+            X['is_white_cus'] = index_df.customer_code.apply(
+                lambda x: 1 if customer_list.is_white_customer(x) else 0).values
+        if 'item_code' in column_names:
+            item_list = ItemList(year, month)
+            X['is_white_items'] = index_df.item_code.apply(
+                lambda x: 1 if item_list.is_white_items(x) else 0).values
+            X['is_scheduled_delisting'] = index_df.item_code.apply(
+                lambda x: 1 if item_list.is_scheduled_delisting_items(x) else 0).values
+            X['is_delisting'] = index_df.item_code.apply(
+                lambda x: 1 if item_list.is_delisting_items(x) else 0).values
+            X['is_new'] = index_df.item_code.apply(
+                lambda x: 1 if item_list.is_new_items(x) else 0).values
+            X['is_curr_new'] = index_df.item_code.apply(
+                lambda x: 1 if item_list.is_curr_new_items(x) else 0).values
+            X['is_618_main'] = index_df.item_code.apply(
+                lambda x: 1 if item_list.is_six_eighteen_main_items(x) else 0).values
+            X['is_1111_main'] = index_df.item_code.apply(
+                lambda x: 1 if item_list.is_double_eleven_main_items(x) else 0).values
+
+    if name_prefix is not None:
+        X.columns = ['%s_%s' % (name_prefix, c) for c in X.columns]
+
+    if is_train:
+        if label_data == 'order':
+            y = get_val(order, true_pred_year, true_pred_month)
+        elif label_data == 'dis':
+            y = get_val(dis, true_pred_year, true_pred_month)
+        elif label_data == 'inv':
+            y = get_val(inv, true_pred_year, true_pred_month)
+        else:
+            raise Exception("[INFO] Illegal label data name!!!")
+        return X, y
+    else:
+        return X
+
+
+def prepare_training_set_for_level1(order, dis, inv, cate_info, months, gap, label_data):
+    X_l, y_l = [], []
+    for y_m in months:
+        y, m = map(int, y_m.split('-'))
+        X_tmp, y_tmp = prepare_dataset_for_level1(order, dis, inv, y, m, gap=gap, label_data=label_data)
+        X_tmp = pd.concat([X_tmp, cate_info.reset_index(drop=True)], axis=1)
+
+        X_l.append(X_tmp)
+        y_l.append(y_tmp)
+
+        del X_tmp, y_tmp
+        gc.collect()
+
+    X_train = pd.concat(X_l, axis=0)
+    y_train = np.concatenate(y_l, axis=0)
+    return X_train, y_train
+
+
+def prepare_val_set_for_level1(order, dis, inv, cate_info, year, month, gap, label_data):
+    X_val, y_val = prepare_dataset_for_level1(order, dis, inv, year, month, gap, label_data=label_data)
+    X_val = pd.concat([X_val, cate_info.reset_index(drop=True)], axis=1)
+    return X_val, y_val
+
+
+def prepare_testing_set_for_level1(order, dis, inv, cate_info, year, month, gap, label_data):
+    X_test = prepare_dataset_for_level1(order, dis, inv, year, month, gap,
+                                        add_cate_feat=True, is_train=False, label_data=label_data)
+    X_test = pd.concat([X_test, cate_info.reset_index(drop=True)], axis=1)
+    return X_test
+
+
 def rule_func(df):
     if df.first_cate_name in {'净水机', '饮水机', '洗碗机', '消毒柜'}:
         if df.is_curr_new:  # 如果是当月新品
