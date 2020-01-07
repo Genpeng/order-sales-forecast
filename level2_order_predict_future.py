@@ -68,12 +68,14 @@ def update_future_for_level2_order(model_config: Bunch,
     # ============================================================================================ #
 
     df_test = level2_data.get_true_order_data(start_pred_year, start_pred_month)
+    print("df_test", df_test)
     df_pred_test = level2_data.add_index(preds_test, start_pred_year, start_pred_month)
     df_pred_test_more = level2_data.predict_by_history(start_pred_year, start_pred_month, gap=periods)
     df_pred_test = pd.concat(
         [df_pred_test, df_pred_test_more], axis=1
     ).stack().to_frame('pred_ord_qty')
     df_pred_test.index.set_names(['item_code', 'order_date'], inplace=True)
+    print("df_pred_test", len(df_pred_test))
     if need_unitize:
         df_pred_test['pred_ord_qty'] = df_pred_test.pred_ord_qty.apply(lambda x: x if x > 0 else 0.0025)
     else:
@@ -82,6 +84,8 @@ def update_future_for_level2_order(model_config: Bunch,
 
     result = df_pred_test.join(df_test, how='left').reset_index()
     result.act_ord_qty.fillna(0, inplace=True)
+
+    print("result", len(result))
 
     result['bu_code'] = 'M111'
     result['bu_name'] = '厨房热水器事业部'
