@@ -263,6 +263,9 @@ def update_future_for_level2_order(model_config: Bunch,
     #     axis=1
     # )
 
+    print(len(result))
+    print(len(rule_res))
+
     result['pred_ord_qty_m1'] = result.pred_ord_qty_m1 * 0.5 + rule_res.pred_ord_qty_rule * 0.5
     result['avg_dis'] = rule_res['dis_sku_month_pre3_mean'].fillna(0.0)
     result['pred_ord_amount_m1'] = np.round(result.pred_ord_qty_m1 * result.item_price,
@@ -308,7 +311,7 @@ def update_future_for_level2_order(model_config: Bunch,
                      'forecast_type', 'avg_dis', 'item_price',
                      'pred_ord_qty_m1', 'pred_ord_qty_m2', 'pred_ord_qty_m3',
                      'attribute1', 'attribute2', 'attribute3', 'attribute4', 'attribute5']]
-    push_to_esb(result, esb_url)
+    # push_to_esb(result, esb_url)
 
 
 if __name__ == '__main__':
