@@ -231,7 +231,7 @@ class Level1DataLoader(BaseDataLoader):
                                        get_days_of_month(true_pred_year, true_pred_month))
         df_act = self._order.loc[(self._order.order_date >= start_dt_str) & (self._order.order_date <= end_dt_str)]
         df_act['order_date'] = df_act.order_date.astype(str).apply(lambda x: x[:4] + x[5:7])
-        df_act = df_act.groupby(['item_code', 'order_date'])[['ord_qty']].sum()
+        df_act = df_act.groupby(['first_cate_code', 'order_date'])[['ord_qty']].sum()
         df_act = df_act.loc[df_act.ord_qty > 0]
         df_act.rename(columns={'ord_qty': 'act_ord_qty'}, inplace=True)
         return df_act.reset_index() if reset_index else df_act
@@ -257,36 +257,10 @@ class Level1DataLoader(BaseDataLoader):
                              start_pred_month: int,
                              use_unitize: bool = True) -> pd.DataFrame:
         df_preds = self.add_index(preds, start_pred_year, start_pred_month).stack().to_frame('pred_ord_qty')
-        df_preds.index.set_names(['item_code', 'order_date'], inplace=True)
+        df_preds.index.set_names(['first_cate_code', 'order_date'], inplace=True)
         df_preds['pred_ord_qty'] = df_preds.pred_ord_qty.apply(lambda x: x if x > 0 else 0)
         df_preds['pred_ord_qty'] = np.round(df_preds.pred_ord_qty, decimals=4 if use_unitize else 0)
         return df_preds
-
-    def get_pre_order_vals(self,
-                           year: int,
-                           month: int,
-                           periods: int = 3,
-                           need_index: bool = True) -> pd.DataFrame:
-        return get_pre_vals(self._order_sku_month, year, month, periods, need_index)
-
-    def get_one_month_order(self,
-                            year: int,
-                            month: int,
-                            need_index: bool = True) -> Union[np.ndarray, pd.Series]:
-        return get_val(self._order_sku_month, year, month, need_index)
-
-    def get_pre_dis_vals(self,
-                         year: int,
-                         month: int,
-                         periods: int = 3,
-                         need_index: bool = True) -> pd.DataFrame:
-        return get_pre_vals(self._dis_sku_month, year, month, periods, need_index)
-
-    def get_one_month_dis(self,
-                          year: int,
-                          month: int,
-                          need_index: bool = True) -> Union[np.ndarray, pd.Series]:
-        return get_val(self._dis_sku_month, year, month, need_index)
 
     def predict_by_history(self, start_pred_year, start_pred_month, gap=4, left_bound_dt='2015-09'):
         left_bound_year, left_bound_month = map(int, left_bound_dt.split('-'))
@@ -320,8 +294,8 @@ class Level1DataLoader(BaseDataLoader):
         return self._version_flag
 
     @property
-    def sku_info(self):
-        return self._sku_info
+    def cate_info(self):
+        return self._cate_info
 
 
 if __name__ == '__main__':
