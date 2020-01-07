@@ -64,8 +64,6 @@ def update_future_for_level2_order(model_config: Bunch,
         predictor.fit(X_train, y_train)
         preds_test.append(predictor.predict(X_test))
 
-    print(len(preds_test[0]))
-
     # Step 3: Process forecast result & write into "水晶球"
     # ============================================================================================ #
 
@@ -267,6 +265,11 @@ def update_future_for_level2_order(model_config: Bunch,
 
     print(len(result))
     print(len(rule_res))
+
+    for col in rule_res.columns:
+        num_na = len(result.loc[result[col].isna()])
+        if num_na > 0:
+            print(col)
 
     result['pred_ord_qty_m1'] = result.pred_ord_qty_m1 * 0.5 + rule_res.pred_ord_qty_rule * 0.5
     result['avg_dis'] = rule_res['dis_sku_month_pre3_mean'].fillna(0.0)
