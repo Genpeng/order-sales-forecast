@@ -137,7 +137,7 @@ def update_future_for_level2_order(model_config: Bunch,
     result['forecast_type'] = "内销整机预测"
 
     m1_year, m1_month = infer_month(start_pred_year, start_pred_month, 1)
-    result['order_date'] = "%d-%02d" % (m1_year, m1_month)
+    result['order_date'] = "%d%02d" % (m1_year, m1_month)
 
     sku_info_dict = level2_data.sku_info.to_dict()
     result['item_name'] = result.item_code.map(sku_info_dict['item_name'])
@@ -246,7 +246,7 @@ def update_future_for_level2_order(model_config: Bunch,
                      'forecast_type', 'avg_dis', 'item_price',
                      'pred_ord_qty_m1', 'pred_ord_qty_m2', 'pred_ord_qty_m3',
                      'attribute1', 'attribute2', 'attribute3', 'attribute4', 'attribute5']]
-    # push_to_esb(result, esb_url)
+    push_to_esb(result, esb_url)
 
 
 if __name__ == '__main__':
