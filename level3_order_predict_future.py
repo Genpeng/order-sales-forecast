@@ -18,7 +18,7 @@ from global_vars import SIT_DB_CONFIG, UAT_DB_CONFIG, PROD_DB_CONFIG
 from data_loader.level3_order_data import Level3OrderDataLoader
 from data_loader.item_list import ItemList
 from data_loader.customer_list import CustomerList
-from infer.sales_infer import SalesInfer
+from infer.sales_infer import LGBMSalesInfer
 from writer.kudu_result_writer import KuduResultWriter
 from util.feature_util import modify_training_set
 from util.config_util import get_args, process_config
@@ -51,7 +51,7 @@ def update_future_for_level3_order(model_config: Bunch,
         X_train, y_train = data_loader.prepare_training_set(train_months, gap=i)
         X_train, y_train = modify_training_set(X_train, y_train)
         X_test = data_loader.prepare_testing_set(start_pred_year, start_pred_month, gap=i)
-        predictor = SalesInfer(model_config)
+        predictor = LGBMSalesInfer(model_config)
         predictor.fit(X_train, y_train)
         preds_test.append(predictor.predict(X_test))
 

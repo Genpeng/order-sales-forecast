@@ -12,7 +12,7 @@ from bunch import Bunch
 from datetime import date
 
 # Own customized modules
-from infer.sales_infer import SalesInfer
+from infer.sales_infer import LGBMSalesInfer
 from util.metric_util import add_accuracy
 from global_vars import SIT_DB_CONFIG, UAT_DB_CONFIG, PROD_DB_CONFIG
 from util.config_util import get_args, process_config
@@ -45,7 +45,7 @@ def update_history_for_level3_order(level3_order_data: Level3OrderDataLoader,
     # Step 2: Training and predicting
     # ============================================================================================ #
 
-    level3_order_infer = SalesInfer(model_config)
+    level3_order_infer = LGBMSalesInfer(model_config)
     level3_order_infer.fit(X_train, y_train)
     preds_test = level3_order_infer.predict(X_test)
 

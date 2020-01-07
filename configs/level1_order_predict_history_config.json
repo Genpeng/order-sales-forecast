@@ -1,0 +1,37 @@
+{
+  "task_name": "level1_order_predict_history",
+  "task_type": "recent",
+  "pred_months": [
+    "2019-11",
+    "2019-10",
+    "2019-09",
+    "2019-08",
+    "2019-07",
+    "2019-06",
+    "2019-05",
+    "2019-04",
+    "2019-03",
+    "2019-02",
+    "2019-01",
+    "2018-12"
+  ],
+  "categories": "all",
+  "need_unitize": true,
+  "model_config": {
+    "model": "random_forest",
+    "model_params": {
+      "n_estimators": 100,
+      "criterion": "mse",
+      "max_depth": 5,
+      "min_samples_split": 2,
+      "min_samples_leaf": 1,
+      "n_jobs": 16,
+      "random_state": 89
+    }
+  },
+  "db_config": {
+    "env": "UAT",
+    "table_name": "m111_level1_order_pred_result",
+    "batch_size": 5000
+  }
+}

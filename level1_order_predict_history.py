@@ -24,7 +24,7 @@ from writer.kudu_result_writer import KuduResultWriter
 from util.date_util import get_curr_date, infer_month, get_pre_months, timestamp_to_time
 
 
-def update_history_for_level2_order(level2_data: Level2DataLoader,
+def update_history_for_level1_order(level2_data: Level2DataLoader,
                                     plan_data: PlanData,
                                     model_config: Bunch,
                                     db_config: Bunch,
@@ -215,7 +215,7 @@ if __name__ == '__main__':
     for ym_str in pred_months:
         start_pred_year, start_pred_month = map(int, ym_str.split('-'))
         if date(start_pred_year, start_pred_month, 1) <= date(year_upper_bound, month_upper_bound, 1):
-            update_history_for_level2_order(level2_data=level2_data,
+            update_history_for_level1_order(level2_data=level2_data,
                                             plan_data=plan_data,
                                             model_config=model_config,
                                             db_config=db_config,
