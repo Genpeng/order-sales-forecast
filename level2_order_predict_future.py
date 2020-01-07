@@ -80,6 +80,67 @@ def update_future_for_level2_order(model_config: Bunch,
     result = df_pred_test.join(df_test, how='left').reset_index()
     result.act_ord_qty.fillna(0, inplace=True)
 
+    ## 修正区 ##
+
+    sku_info_dict = level2_data.sku_info.to_dict()
+
+    m1_year, m1_month = infer_month(start_pred_year, start_pred_month, 1)
+    m1_res = result.loc[result.order_date == "%d%02d" % (m1_year, m1_month)]
+    other_res = result.loc[~(result.order_date == "%d%02d" % (m1_year, m1_month))]
+
+    rule_res = m1_res.copy()
+    order_sku_month_pre6_mean = level2_data.get_pre_order_vals(
+        start_pred_year, start_pred_month, 6, True).replace(0, np.nan).mean(axis=1)
+    order_sku_month_pre1 = level2_data.get_pre_order_vals(
+        start_pred_year, start_pred_month, 1, True).mean(axis=1)
+    dis_sku_month_pre3_mean = level2_data.get_pre_dis_vals(
+        start_pred_year, start_pred_month, 3, True).replace(0, np.nan).mean(axis=1)
+    dis_sku_month_pre1 = level2_data.get_pre_dis_vals(
+        start_pred_year, start_pred_month, 1, True).mean(axis=1)
+    plan_sku_month_mean = plan_data.plan_sku_month_mean
+
+    rule_res['ord_sku_month_pre6_mean'] = rule_res.item_code.map(order_sku_month_pre6_mean)
+    rule_res['ord_sku_month_pre1'] = rule_res.item_code.map(order_sku_month_pre1)
+    rule_res['dis_sku_month_pre3_mean'] = rule_res.item_code.map(dis_sku_month_pre3_mean)
+    rule_res['dis_sku_month_pre1'] = rule_res.item_code.map(dis_sku_month_pre1)
+    rule_res['plan_sku_month_mean'] = rule_res.item_code.map(plan_sku_month_mean)
+
+    rule_res['is_aver_ord_na'] = (rule_res.ord_sku_month_pre6_mean.isna()) * 1
+    rule_res['is_aver_dis_na'] = (rule_res.dis_sku_month_pre3_mean.isna()) * 1
+    rule_res['is_aver_plan_na'] = (rule_res.plan_sku_month_mean.isna()) * 1
+    rule_res['is_ord_pre1_na'] = (rule_res.ord_sku_month_pre1.isna()) * 1
+    rule_res['is_dis_pre1_na'] = (rule_res.dis_sku_month_pre1.isna()) * 1
+
+    rule_res['online_offline_flag'] = rule_res.item_code.map(sku_info_dict['sales_chan_name']).fillna('未知')
+    rule_res['project_flag'] = rule_res.item_code.map(sku_info_dict['project_flag']).fillna('未知')
+
+    order_sku_month_pre24_mean = level2_data.get_pre_order_vals(
+        start_pred_year, start_pred_month, 24, True).replace(0, np.nan).mean(axis=1)
+    curr_new_items = set(order_sku_month_pre24_mean.loc[order_sku_month_pre24_mean.isna()].index)
+
+    dis_sku_month_pre3 = level2_data.get_pre_dis_vals(start_pred_year, start_pred_month, 3, True)
+    dis_sku_month_pre3['num_not_null'] = ((dis_sku_month_pre3 > 0) * 1).sum(axis=1)
+    new_items_by_dis = set(
+        dis_sku_month_pre3.loc[(dis_sku_month_pre3.num_not_null == 1) & (dis_sku_month_pre3.iloc[:, 2] > 0)].index)
+
+    demand = plan_data.get_one_month(m1_year, m1_month, True)
+    rule_res['demand'] = rule_res.item_code.map(demand)
+    rule_res['is_curr_new'] = rule_res.item_code.apply(lambda x: 1 if x in curr_new_items else 0)
+    rule_res['is_new_by_dis'] = rule_res.item_code.apply(lambda x: 1 if x in new_items_by_dis else 0)
+    rule_res['demand_dis_ratio'] = rule_res.demand / rule_res.dis_sku_month_pre3_mean
+
+    rule_res['pred_ord_qty_rule'] = rule_res.apply(rule_func, axis=1)
+    rule_res['pred_ord_qty_rule'] = rule_res.pred_ord_qty_rule.replace(np.nan, 0)
+    rule_res['pred_ord_qty_rule'] = rule_res.apply(
+        lambda x: x.pred_ord_qty if x.pred_ord_qty_rule == 0 else x.pred_ord_qty_rule,
+        axis=1
+    )
+
+    m1_res['pred_ord_qty'] = m1_res.pred_ord_qty * 0.5 + rule_res.pred_ord_qty_rule * 0.5
+    result = pd.concat([m1_res, other_res], axis=0)
+
+    ###########
+
     result['bu_code'] = 'M111'
     result['bu_name'] = '厨房热水器事业部'
     result['comb_name'] = 'Default'
@@ -136,7 +197,7 @@ def update_future_for_level2_order(model_config: Bunch,
     result['sales_type'] = "内销"
     result['forecast_type'] = "内销整机预测"
 
-    m1_year, m1_month = infer_month(start_pred_year, start_pred_month, 1)
+    # m1_year, m1_month = infer_month(start_pred_year, start_pred_month, 1)
     result['order_date'] = "%d%02d" % (m1_year, m1_month)
 
     sku_info_dict = level2_data.sku_info.to_dict()
@@ -152,54 +213,54 @@ def update_future_for_level2_order(model_config: Bunch,
     result['manu_code'] = result.item_code.map(item_list_dict['manu_code']).fillna('')
     result['area_name'] = ''
 
-    rule_res = result.copy()
-    rule_res['pred_ord_qty'] = rule_res['pred_ord_qty_m1']
-    order_sku_month_pre6_mean = level2_data.get_pre_order_vals(
-        start_pred_year, start_pred_month, 6, True).replace(0, np.nan).mean(axis=1)
-    order_sku_month_pre1 = level2_data.get_pre_order_vals(
-        start_pred_year, start_pred_month, 1, True).mean(axis=1)
-    dis_sku_month_pre3_mean = level2_data.get_pre_dis_vals(
-        start_pred_year, start_pred_month, 3, True).replace(0, np.nan).mean(axis=1)
-    dis_sku_month_pre1 = level2_data.get_pre_dis_vals(
-        start_pred_year, start_pred_month, 1, True).mean(axis=1)
-    plan_sku_month_mean = plan_data.plan_sku_month_mean
-
-    rule_res['ord_sku_month_pre6_mean'] = rule_res.item_code.map(order_sku_month_pre6_mean)
-    rule_res['ord_sku_month_pre1'] = rule_res.item_code.map(order_sku_month_pre1)
-    rule_res['dis_sku_month_pre3_mean'] = rule_res.item_code.map(dis_sku_month_pre3_mean)
-    rule_res['dis_sku_month_pre1'] = rule_res.item_code.map(dis_sku_month_pre1)
-    rule_res['plan_sku_month_mean'] = rule_res.item_code.map(plan_sku_month_mean)
-
-    rule_res['is_aver_ord_na'] = (rule_res.ord_sku_month_pre6_mean.isna()) * 1
-    rule_res['is_aver_dis_na'] = (rule_res.dis_sku_month_pre3_mean.isna()) * 1
-    rule_res['is_aver_plan_na'] = (rule_res.plan_sku_month_mean.isna()) * 1
-    rule_res['is_ord_pre1_na'] = (rule_res.ord_sku_month_pre1.isna()) * 1
-    rule_res['is_dis_pre1_na'] = (rule_res.dis_sku_month_pre1.isna()) * 1
-
-    rule_res['online_offline_flag'] = rule_res.item_code.map(sku_info_dict['sales_chan_name']).fillna('未知')
-    rule_res['project_flag'] = rule_res.item_code.map(sku_info_dict['project_flag']).fillna('未知')
-
-    order_sku_month_pre24_mean = level2_data.get_pre_order_vals(
-        start_pred_year, start_pred_month, 24, True).replace(0, np.nan).mean(axis=1)
-    curr_new_items = set(order_sku_month_pre24_mean.loc[order_sku_month_pre24_mean.isna()].index)
-
-    dis_sku_month_pre3 = level2_data.get_pre_dis_vals(start_pred_year, start_pred_month, 3, True)
-    dis_sku_month_pre3['num_not_null'] = ((dis_sku_month_pre3 > 0) * 1).sum(axis=1)
-    new_items_by_dis = set(
-        dis_sku_month_pre3.loc[(dis_sku_month_pre3.num_not_null == 1) & (dis_sku_month_pre3.iloc[:, 2] > 0)].index)
-
-    demand = plan_data.get_one_month(m1_year, m1_month, True)
-    rule_res['demand'] = rule_res.item_code.map(demand)
-    rule_res['is_curr_new'] = rule_res.item_code.apply(lambda x: 1 if x in curr_new_items else 0)
-    rule_res['is_new_by_dis'] = rule_res.item_code.apply(lambda x: 1 if x in new_items_by_dis else 0)
-    rule_res['demand_dis_ratio'] = rule_res.demand / rule_res.dis_sku_month_pre3_mean
-
-    rule_res['pred_ord_qty_rule'] = rule_res.apply(rule_func, axis=1)
-    rule_res['pred_ord_qty_rule'] = rule_res.pred_ord_qty_rule.replace(np.nan, 0)
-    rule_res['pred_ord_qty_rule'] = rule_res.apply(
-        lambda x: x.pred_ord_qty if x.pred_ord_qty_rule == 0 else x.pred_ord_qty_rule,
-        axis=1
-    )
+    # rule_res = result.copy()
+    # rule_res['pred_ord_qty'] = rule_res['pred_ord_qty_m1']
+    # order_sku_month_pre6_mean = level2_data.get_pre_order_vals(
+    #     start_pred_year, start_pred_month, 6, True).replace(0, np.nan).mean(axis=1)
+    # order_sku_month_pre1 = level2_data.get_pre_order_vals(
+    #     start_pred_year, start_pred_month, 1, True).mean(axis=1)
+    # dis_sku_month_pre3_mean = level2_data.get_pre_dis_vals(
+    #     start_pred_year, start_pred_month, 3, True).replace(0, np.nan).mean(axis=1)
+    # dis_sku_month_pre1 = level2_data.get_pre_dis_vals(
+    #     start_pred_year, start_pred_month, 1, True).mean(axis=1)
+    # plan_sku_month_mean = plan_data.plan_sku_month_mean
+    #
+    # rule_res['ord_sku_month_pre6_mean'] = rule_res.item_code.map(order_sku_month_pre6_mean)
+    # rule_res['ord_sku_month_pre1'] = rule_res.item_code.map(order_sku_month_pre1)
+    # rule_res['dis_sku_month_pre3_mean'] = rule_res.item_code.map(dis_sku_month_pre3_mean)
+    # rule_res['dis_sku_month_pre1'] = rule_res.item_code.map(dis_sku_month_pre1)
+    # rule_res['plan_sku_month_mean'] = rule_res.item_code.map(plan_sku_month_mean)
+    #
+    # rule_res['is_aver_ord_na'] = (rule_res.ord_sku_month_pre6_mean.isna()) * 1
+    # rule_res['is_aver_dis_na'] = (rule_res.dis_sku_month_pre3_mean.isna()) * 1
+    # rule_res['is_aver_plan_na'] = (rule_res.plan_sku_month_mean.isna()) * 1
+    # rule_res['is_ord_pre1_na'] = (rule_res.ord_sku_month_pre1.isna()) * 1
+    # rule_res['is_dis_pre1_na'] = (rule_res.dis_sku_month_pre1.isna()) * 1
+    #
+    # rule_res['online_offline_flag'] = rule_res.item_code.map(sku_info_dict['sales_chan_name']).fillna('未知')
+    # rule_res['project_flag'] = rule_res.item_code.map(sku_info_dict['project_flag']).fillna('未知')
+    #
+    # order_sku_month_pre24_mean = level2_data.get_pre_order_vals(
+    #     start_pred_year, start_pred_month, 24, True).replace(0, np.nan).mean(axis=1)
+    # curr_new_items = set(order_sku_month_pre24_mean.loc[order_sku_month_pre24_mean.isna()].index)
+    #
+    # dis_sku_month_pre3 = level2_data.get_pre_dis_vals(start_pred_year, start_pred_month, 3, True)
+    # dis_sku_month_pre3['num_not_null'] = ((dis_sku_month_pre3 > 0) * 1).sum(axis=1)
+    # new_items_by_dis = set(
+    #     dis_sku_month_pre3.loc[(dis_sku_month_pre3.num_not_null == 1) & (dis_sku_month_pre3.iloc[:, 2] > 0)].index)
+    #
+    # demand = plan_data.get_one_month(m1_year, m1_month, True)
+    # rule_res['demand'] = rule_res.item_code.map(demand)
+    # rule_res['is_curr_new'] = rule_res.item_code.apply(lambda x: 1 if x in curr_new_items else 0)
+    # rule_res['is_new_by_dis'] = rule_res.item_code.apply(lambda x: 1 if x in new_items_by_dis else 0)
+    # rule_res['demand_dis_ratio'] = rule_res.demand / rule_res.dis_sku_month_pre3_mean
+    #
+    # rule_res['pred_ord_qty_rule'] = rule_res.apply(rule_func, axis=1)
+    # rule_res['pred_ord_qty_rule'] = rule_res.pred_ord_qty_rule.replace(np.nan, 0)
+    # rule_res['pred_ord_qty_rule'] = rule_res.apply(
+    #     lambda x: x.pred_ord_qty if x.pred_ord_qty_rule == 0 else x.pred_ord_qty_rule,
+    #     axis=1
+    # )
 
     result['pred_ord_qty_m1'] = result.pred_ord_qty_m1 * 0.5 + rule_res.pred_ord_qty_rule * 0.5
     result['avg_dis'] = rule_res['dis_sku_month_pre3_mean'].fillna(0.0)
