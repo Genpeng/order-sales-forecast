@@ -266,13 +266,18 @@ def update_future_for_level2_order(model_config: Bunch,
     print(len(result))
     print(len(rule_res))
 
+    for col in result.columns:
+        num_na = len(result.loc[result[col].isna()])
+        if num_na > 0:
+            print(col)
+
     for col in rule_res.columns:
         num_na = len(rule_res.loc[rule_res[col].isna()])
         if num_na > 0:
             print(col)
 
-    print(result)
-    print(rule_res)
+    result.to_csv("result.csv", index=None)
+    rule_res.to_csv("rule_res.csv", index=None)
 
     result['pred_ord_qty_m1'] = result.pred_ord_qty_m1 * 0.5 + rule_res.pred_ord_qty_rule * 0.5
     result['avg_dis'] = rule_res['dis_sku_month_pre3_mean'].fillna(0.0)
