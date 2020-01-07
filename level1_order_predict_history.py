@@ -7,6 +7,7 @@ Author: Genpeng Xu
 """
 
 import time
+import warnings
 import numpy as np
 from bunch import Bunch
 from datetime import date
@@ -19,6 +20,8 @@ from util.config_util import get_args, process_config
 from data_loader.level1_data import Level1DataLoader
 from writer.kudu_result_writer import KuduResultWriter
 from util.date_util import get_curr_date, infer_month, get_pre_months, timestamp_to_time
+
+warnings.filterwarnings('ignore')
 
 
 def update_history_for_level1_order(level1_data: Level1DataLoader,
@@ -76,8 +79,8 @@ def update_history_for_level1_order(level1_data: Level1DataLoader,
     cate_info_dict = level1_data.cate_info.to_dict()
     result['aver_price'] = result.first_cate_code.map(cate_info_dict['cate_aver_price'])
 
-    result['act_ord_amount'] = np.round(result.act_ord_qty * result.item_price, decimals=4 if use_unitize else 0)
-    result['pred_ord_amount'] = np.round(result.pred_ord_qty * result.item_price, decimals=4 if use_unitize else 0)
+    result['act_ord_amount'] = np.round(result.act_ord_qty * result.aver_price, decimals=4 if use_unitize else 0)
+    result['pred_ord_amount'] = np.round(result.pred_ord_qty * result.aver_price, decimals=4 if use_unitize else 0)
     result['ord_pred_time'] = timestamp_to_time(time.time())
 
     add_accuracy(result, 'ord_acc', 'act_ord_qty', 'pred_ord_qty')
@@ -123,7 +126,8 @@ if __name__ == '__main__':
     # Update forecast result of level1 order
     # ============================================================================================ #
 
-    curr_year, curr_month, _ = get_curr_date()
+    # curr_year, curr_month, _ = get_curr_date()
+    curr_year, curr_month, _ = 2019, 12, 16
     gap = 1  # 更新历史，默认预测M1月
     year_upper_bound, month_upper_bound = infer_month(curr_year, curr_month, offset=-(gap + 1))
 
