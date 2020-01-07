@@ -8,6 +8,7 @@ Author: Genpeng Xu
 
 import gc
 import time
+import warnings
 import numpy as np
 import pandas as pd
 from bunch import Bunch
@@ -27,6 +28,8 @@ from util.config_util import get_args, process_config
 from util.date_util import (get_curr_date, infer_month, get_pre_months,
                             timestamp_to_time, get_days_of_month)
 from util.esb_util import push_to_esb
+
+warnings.filterwarnings('ignore')
 
 
 def update_future_for_level2_order(model_config: Bunch,
@@ -80,9 +83,20 @@ def update_future_for_level2_order(model_config: Bunch,
     result = df_pred_test.join(df_test, how='left').reset_index()
     result.act_ord_qty.fillna(0, inplace=True)
 
-    ## 修正区 ##
+    result['bu_code'] = 'M111'
+    result['bu_name'] = '厨房热水器事业部'
+    result['comb_name'] = 'Default'
 
     sku_info_dict = level2_data.sku_info.to_dict()
+    result['item_name'] = result.item_code.map(sku_info_dict['item_name'])
+    result['first_cate_code'] = result.item_code.map(sku_info_dict['first_cate_code'])
+    result['second_cate_code'] = result.item_code.map(sku_info_dict['second_cate_code'])
+    result['first_cate_name'] = result.item_code.map(sku_info_dict['first_cate_name'])
+    result['second_cate_name'] = result.item_code.map(sku_info_dict['second_cate_name'])
+    result['channel_name'] = result.item_code.map(sku_info_dict['channel_name'])
+    result['item_price'] = result.item_code.map(sku_info_dict['item_price'])
+
+    ## 修正区 ##
 
     m1_year, m1_month = infer_month(start_pred_year, start_pred_month, 1)
     m1_res = result.loc[result.order_date == "%d%02d" % (m1_year, m1_month)]
@@ -140,19 +154,6 @@ def update_future_for_level2_order(model_config: Bunch,
     result = pd.concat([m1_res, other_res], axis=0)
 
     ###########
-
-    result['bu_code'] = 'M111'
-    result['bu_name'] = '厨房热水器事业部'
-    result['comb_name'] = 'Default'
-
-    sku_info_dict = level2_data.sku_info.to_dict()
-    result['item_name'] = result.item_code.map(sku_info_dict['item_name'])
-    result['first_cate_code'] = result.item_code.map(sku_info_dict['first_cate_code'])
-    result['second_cate_code'] = result.item_code.map(sku_info_dict['second_cate_code'])
-    result['first_cate_name'] = result.item_code.map(sku_info_dict['first_cate_name'])
-    result['second_cate_name'] = result.item_code.map(sku_info_dict['second_cate_name'])
-    result['channel_name'] = result.item_code.map(sku_info_dict['channel_name'])
-    result['item_price'] = result.item_code.map(sku_info_dict['item_price'])
 
     result['act_ord_amount'] = np.round(result.act_ord_qty * result.item_price, decimals=4)
     result['pred_ord_amount'] = np.round(result.pred_ord_qty * result.item_price, decimals=4)
