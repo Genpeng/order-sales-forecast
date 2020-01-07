@@ -271,7 +271,7 @@ class Level1DataLoader(BaseDataLoader):
             if (start_aver_year - i > left_bound_year) or \
                     (start_aver_year - i == left_bound_year and start_aver_month >= left_bound_month):
                 start_dt = "%d-%02d-%d" % (start_aver_year - i, start_aver_month, 1)
-                tmp = self._order_sku_month[pd.date_range(start_dt, periods=pred_len, freq='M')].values
+                tmp = self._order_cate1_month[pd.date_range(start_dt, periods=pred_len, freq='M')].values
                 history.append(tmp)
         result = np.mean(np.array(history), axis=0)
         months_pred = ['%d%02d' % infer_month(start_aver_year, start_aver_month, i) for i in range(pred_len)]

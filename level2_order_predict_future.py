@@ -1,7 +1,7 @@
 # _*_ coding: utf-8 _*_
 
 """
-Predict order future result of Level-3.
+Predict order future result of Level-2.
 
 Author: Genpeng Xu
 """
@@ -36,7 +36,7 @@ def update_future_for_level2_order(model_config: Bunch,
                                    periods: int = 4,
                                    categories: Union[str, List[str]] = 'all',
                                    need_unitize: bool = True) -> None:
-    """Update order future result of level2 """
+    """Update order future result of level2."""
 
     # Step 1: Read in data
     # ============================================================================================ #

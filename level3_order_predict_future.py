@@ -32,7 +32,7 @@ def update_future_for_level3_order(model_config: Bunch,
                                    periods: int = 4,
                                    categories: Union[str, List[str]] = 'all',
                                    need_unitize: bool = True) -> None:
-    """Update order future result of level3 """
+    """Update order future result of level1."""
 
     # Step 1: Read in data
     # ============================================================================================ #

@@ -1,7 +1,7 @@
 # _*_ coding: utf-8 _*_
 
 """
-Update order forecast result of Level-2.
+Update order forecast result of Level-1.
 
 Author: Genpeng Xu
 """
@@ -30,7 +30,7 @@ def update_history_for_level1_order(level1_data: Level1DataLoader,
                                     start_pred_year: int,
                                     start_pred_month: int,
                                     gap: int,
-                                    use_unitize: bool = True) -> None:
+                                    need_unitize: bool = True) -> None:
     """Update order forecast result of level1 in specified month."""
 
     # Step 1: Prepare training and testing set
@@ -57,7 +57,7 @@ def update_history_for_level1_order(level1_data: Level1DataLoader,
     df_pred_test = level1_data.decorate_pred_result(preds_test,
                                                     true_pred_year,
                                                     true_pred_month,
-                                                    use_unitize=use_unitize)
+                                                    use_unitize=need_unitize)
 
     result = df_test.join(df_pred_test, how='left').reset_index()
 
@@ -79,8 +79,8 @@ def update_history_for_level1_order(level1_data: Level1DataLoader,
     cate_info_dict = level1_data.cate_info.to_dict()
     result['aver_price'] = result.first_cate_code.map(cate_info_dict['cate_aver_price'])
 
-    result['act_ord_amount'] = np.round(result.act_ord_qty * result.aver_price, decimals=4 if use_unitize else 0)
-    result['pred_ord_amount'] = np.round(result.pred_ord_qty * result.aver_price, decimals=4 if use_unitize else 0)
+    result['act_ord_amount'] = np.round(result.act_ord_qty * result.aver_price, decimals=4 if need_unitize else 0)
+    result['pred_ord_amount'] = np.round(result.pred_ord_qty * result.aver_price, decimals=4 if need_unitize else 0)
     result['ord_pred_time'] = timestamp_to_time(time.time())
 
     add_accuracy(result, 'ord_acc', 'act_ord_qty', 'pred_ord_qty')
@@ -153,6 +153,6 @@ if __name__ == '__main__':
                                             start_pred_year=start_pred_year,
                                             start_pred_month=start_pred_month,
                                             gap=gap,
-                                            use_unitize=config.need_unitize)
+                                            need_unitize=config.need_unitize)
         else:
             raise Exception("[INFO] The update date is illegal!!!")
