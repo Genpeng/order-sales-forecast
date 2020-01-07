@@ -64,11 +64,12 @@ def update_future_for_level2_order(model_config: Bunch,
         predictor.fit(X_train, y_train)
         preds_test.append(predictor.predict(X_test))
 
+    print(len(preds_test[0]))
+
     # Step 3: Process forecast result & write into "水晶球"
     # ============================================================================================ #
 
-    df_test = level2_data.get_true_order_data(start_pred_year, start_pred_month)
-    print("df_test", df_test)
+    df_test = level2_data.get_true_order_data(start_pred_year, start_pred_month)  # 847
     df_pred_test = level2_data.add_index(preds_test, start_pred_year, start_pred_month)
     df_pred_test_more = level2_data.predict_by_history(start_pred_year, start_pred_month, gap=periods)
     df_pred_test = pd.concat(
@@ -83,9 +84,7 @@ def update_future_for_level2_order(model_config: Bunch,
     df_pred_test['pred_ord_qty'] = np.round(df_pred_test.pred_ord_qty, decimals=4 if need_unitize else 0)
 
     result = df_pred_test.join(df_test, how='left').reset_index()
-    result.act_ord_qty.fillna(0, inplace=True)
-
-    print("result", len(result))
+    result.act_ord_qty.fillna(0, inplace=True)  # 29964
 
     result['bu_code'] = 'M111'
     result['bu_name'] = '厨房热水器事业部'
@@ -214,7 +213,6 @@ def update_future_for_level2_order(model_config: Bunch,
     result['item_price'] = result.item_code.map(sku_info_dict['item_price'])
 
     item_list_dict = item_list.items.copy().set_index('item_code').to_dict()
-    print(len(item_list_dict['manu_code']))
     result['manu_code'] = result.item_code.map(item_list_dict['manu_code']).fillna('')
     result['area_name'] = ''
 
@@ -279,6 +277,11 @@ def update_future_for_level2_order(model_config: Bunch,
     result['pred_ord_amount_m3'] = np.round(result.pred_ord_qty_m3 * result.item_price,
                                             decimals=4 if need_unitize else 0)
     result['ord_pred_time'] = timestamp_to_time(time.time())
+
+    for col in result.columns:
+        num_na = len(result.loc[result[col].isna()])
+        if num_na > 0:
+            print(col)
 
     if need_unitize:
         result['avg_dis'] = np.round(result.avg_dis * 10000)
