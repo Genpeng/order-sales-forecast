@@ -86,6 +86,7 @@ def download(client, table_name, year, month):
 if __name__ == '__main__':
     curr_year, curr_month, _ = get_curr_date()
 
+    # Download from UAT environment
     # uat_url = "http://10.18.104.201:50070"
     # uat_client = InsecureClient(uat_url, user='caojun1')
     # download(uat_client, ORDER_TABLE_NAME, curr_year, curr_month)
@@ -97,6 +98,7 @@ if __name__ == '__main__':
     # else:
     #     download(uat_client, PLAN_TABLE_NAME, curr_year, curr_month)
 
+    # download from production environment
     prod_url = "http://10.18.104.29:50071"
     prod_client = InsecureClient(prod_url, user='caojun1')
     download(prod_client, ORDER_TABLE_NAME, curr_year, curr_month)
