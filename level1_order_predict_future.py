@@ -17,7 +17,7 @@ from typing import Union, List
 
 # Own customized modules
 from global_vars import (SIT_DB_CONFIG, UAT_DB_CONFIG, PROD_DB_CONFIG,
-                         UAT_ESB_URL, PROD_ESB_URL)
+                         UAT_ESB_URL, PROD_ESB_URL, CATE_CODE_2_CATE_NAME)
 from data_loader.level1_data import Level1DataLoader
 from infer.sales_infer import RFSalesInfer
 from writer.kudu_result_writer import KuduResultWriter
@@ -82,17 +82,7 @@ def update_future_for_level1_order(model_config: Bunch,
     result['bu_name'] = '厨房热水器事业部'
     result['comb_name'] = 'Default'
 
-    cate_code_to_name = {
-        'CRYJ': '烟机',
-        'CRZJ': '灶具',
-        'CRXDG': '消毒柜',
-        'CRXWJ': '洗碗机',
-        'DR': '电热水器',
-        'RR': '燃气热水器',
-        'JSJ': '净水机',
-        'YSJ': '饮水机'
-    }
-    result['first_cate_name'] = result.first_cate_code.map(cate_code_to_name)
+    result['first_cate_name'] = result.first_cate_code.map(CATE_CODE_2_CATE_NAME)
     cate_info_dict = level1_data.cate_info.to_dict()
     result['aver_price'] = result.first_cate_code.map(cate_info_dict['cate_aver_price'])
 
@@ -102,13 +92,10 @@ def update_future_for_level1_order(model_config: Bunch,
 
     if db_config.env == 'SIT':
         kudu_config = SIT_DB_CONFIG
-        esb_url = UAT_ESB_URL
     elif db_config.env == 'UAT':
         kudu_config = UAT_DB_CONFIG
-        esb_url = UAT_ESB_URL
     elif db_config.env == 'PROD':
         kudu_config = PROD_DB_CONFIG
-        esb_url = PROD_ESB_URL
     else:
         raise Exception("[INFO] The environment name of database to write result is illegal!!!")
 
@@ -138,17 +125,7 @@ def update_future_for_level1_order(model_config: Bunch,
     m1_year, m1_month = infer_month(start_pred_year, start_pred_month, 1)
     result['order_date'] = "%d%02d" % (m1_year, m1_month)
 
-    cate_code_to_name = {
-        'CRYJ': '烟机',
-        'CRZJ': '灶具',
-        'CRXDG': '消毒柜',
-        'CRXWJ': '洗碗机',
-        'DR': '电热水器',
-        'RR': '燃气热水器',
-        'JSJ': '净水机',
-        'YSJ': '饮水机'
-    }
-    result['first_cate_name'] = result.first_cate_code.map(cate_code_to_name)
+    result['first_cate_name'] = result.first_cate_code.map(CATE_CODE_2_CATE_NAME)
     result['aver_price'] = result.first_cate_code.map(cate_info_dict['cate_aver_price'])
 
     result['pred_ord_amount_m1'] = np.round(result.pred_ord_qty_m1 * result.aver_price,
@@ -191,12 +168,11 @@ if __name__ == '__main__':
     # Update future result of level1 order
     # ============================================================================================ #
 
-    # curr_year, curr_month, _ = get_curr_date()
-    curr_year, curr_month, _ = 2019, 12, 10
-    # if datetime.now() < datetime(curr_year, curr_month, 16, 13, 0, 0):
-    #     raise Exception("[INFO] The data is not ready yet, please try again after 13:00 on the 16th!")
-    # if config.periods < 2:
-    #     raise Exception("[INFO] The predicted period is less than 2!!!")
+    curr_year, curr_month, _ = get_curr_date()
+    if datetime.now() < datetime(curr_year, curr_month, 16, 13, 0, 0):
+        raise Exception("[INFO] The data is not ready yet, please try again after 13:00 on the 16th!")
+    if config.periods < 2:
+        raise Exception("[INFO] The predicted period is less than 2!!!")
 
     model_config = Bunch(config.model_config)
     db_config = Bunch(config.db_config)
