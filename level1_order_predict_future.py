@@ -16,8 +16,8 @@ from datetime import datetime
 from typing import Union, List
 
 # Own customized modules
-from global_vars import (SIT_DB_CONFIG, UAT_DB_CONFIG, PROD_DB_CONFIG,
-                         UAT_ESB_URL, PROD_ESB_URL, CATE_CODE_2_CATE_NAME)
+from global_vars import (SIT_DB_CONFIG, UAT_DB_CONFIG,
+                         PROD_DB_CONFIG, CATE_CODE_2_CATE_NAME)
 from data_loader.level1_data import Level1DataLoader
 from infer.sales_infer import RFSalesInfer
 from writer.kudu_result_writer import KuduResultWriter
