@@ -271,7 +271,7 @@ def prepare_dataset_for_level3(order: pd.DataFrame,
     if inv is not None:
         for i in range(1, 7):
             y_tmp, m_tmp = infer_month(year, month, offset=-i)
-            X['inv_pre_%s' % i] = get_val(order, y_tmp, m_tmp)
+            X['inv_pre_%s' % i] = get_val(inv, y_tmp, m_tmp)
 
     # 历史同期前后3个月的提货
     # if order is not None:
@@ -666,7 +666,7 @@ def prepare_dataset_for_level2(order: pd.DataFrame,
     if inv is not None:
         for i in range(1, 7):
             y_tmp, m_tmp = infer_month(year, month, offset=-i)
-            X['inv_pre_%s' % i] = get_val(order, y_tmp, m_tmp)
+            X['inv_pre_%s' % i] = get_val(inv, y_tmp, m_tmp)
 
     # 历史同期前后3个月的提货
     # if order is not None:
@@ -956,7 +956,7 @@ def prepare_dataset_for_level1(order: pd.DataFrame,
     if inv is not None:
         for i in range(1, 7):
             y_tmp, m_tmp = infer_month(year, month, offset=-i)
-            X['inv_pre_%s' % i] = get_val(order, y_tmp, m_tmp)
+            X['inv_pre_%s' % i] = get_val(inv, y_tmp, m_tmp)
 
     # 历史同期前后3个月的提货
     # if order is not None:
