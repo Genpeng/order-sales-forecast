@@ -135,6 +135,7 @@ class Level3OrderDataLoader(BaseDataLoader):
                                        'sales_cen_code', 'sales_cen_name',
                                        'sales_region_name', 'province', 'city', 'district']]
         label_enc = LabelEncoder()
+        customer_info['customer_id'] = label_enc.fit_transform(customer_info['customer_code'])
         customer_info['sales_cen_id'] = label_enc.fit_transform(customer_info['sales_cen_code'])
         customer_info['sales_region_id'] = label_enc.fit_transform(customer_info['sales_region_name'])
         customer_info['province_id'] = label_enc.fit_transform(customer_info['province'])
@@ -161,6 +162,7 @@ class Level3OrderDataLoader(BaseDataLoader):
                              'second_cate_code', 'second_cate_name',
                              'item_price', 'channel_name', 'sales_chan_name', 'project_flag']]
         label_enc = LabelEncoder()
+        sku_info['item_id'] = label_enc.fit_transform(sku_info.item_code)
         sku_info['first_cate_id'] = label_enc.fit_transform(sku_info.first_cate_code)
         sku_info['second_cate_id'] = label_enc.fit_transform(sku_info.second_cate_code)
         sku_info['channel_id'] = label_enc.fit_transform(sku_info.channel_name)
