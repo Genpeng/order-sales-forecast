@@ -263,19 +263,6 @@ def update_future_for_level2_order(model_config: Bunch,
     #     axis=1
     # )
 
-    print(len(result))
-    print(len(rule_res))
-
-    for col in result.columns:
-        num_na = len(result.loc[result[col].isna()])
-        if num_na > 0:
-            print(col)
-
-    for col in rule_res.columns:
-        num_na = len(rule_res.loc[rule_res[col].isna()])
-        if num_na > 0:
-            print(col)
-
     result.to_csv("result.csv", index=None)
     rule_res.to_csv("rule_res.csv", index=None)
 
@@ -288,11 +275,6 @@ def update_future_for_level2_order(model_config: Bunch,
     result['pred_ord_amount_m3'] = np.round(result.pred_ord_qty_m3 * result.item_price,
                                             decimals=4 if need_unitize else 0)
     result['ord_pred_time'] = timestamp_to_time(time.time())
-
-    for col in result.columns:
-        num_na = len(result.loc[result[col].isna()])
-        if num_na > 0:
-            print(col)
 
     if need_unitize:
         result['avg_dis'] = np.round(result.avg_dis * 10000)
