@@ -74,7 +74,6 @@ def update_future_for_level2_order(model_config: Bunch,
         [df_pred_test, df_pred_test_more], axis=1
     ).stack().to_frame('pred_ord_qty')
     df_pred_test.index.set_names(['item_code', 'order_date'], inplace=True)
-    print("df_pred_test", len(df_pred_test))
     if need_unitize:
         df_pred_test['pred_ord_qty'] = df_pred_test.pred_ord_qty.apply(lambda x: x if x > 0 else 0.0025)
     else:
@@ -287,6 +286,8 @@ def update_future_for_level2_order(model_config: Bunch,
 
     result = result.loc[~result.item_code.apply(lambda x: item_list.is_delisting_items(x))]
     result = result.loc[~(result.manu_code == '')]
+
+    result.to_csv("result2.csv", index=None)
 
     writer = KuduResultWriter(Bunch(kudu_config))
     writer.clear_one_month(db_config.table2_name, 'order_date', m1_year, m1_month)
