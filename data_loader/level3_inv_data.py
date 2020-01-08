@@ -20,7 +20,7 @@ from util.feature_util import (prepare_training_set_for_level3, prepare_val_set_
 
 
 class Level3InvDataLoader(BaseDataLoader):
-    """Invertory data loader of Level-3 (per sku per customer)."""
+    """Inventory data loader of Level-3 (per sku per customer)."""
 
     def __init__(self, year, month, categories='all', need_unitize=True):
         self._year, self._month = year, month
@@ -31,7 +31,7 @@ class Level3InvDataLoader(BaseDataLoader):
         self._inv = self._get_inv_data(need_unitize)
         self._inv_cus_sku_month = self._get_month_inv_per_cus_sku()  # 得到每个代理商每个SKU每个月库存
         self._index = self._inv_cus_sku_month.index
-        self._inv_cus_sku_month_pre15 = self._get_pre15_inv_per_cus_sku()  # 得到每个代理商每个SKU前15天的库存
+        # self._inv_cus_sku_month_pre15 = self._get_pre15_inv_per_cus_sku()  # 得到每个代理商每个SKU前15天的库存
         self._customer_info, self._customer_info_encoded = self._get_cus_info()  # 得到代理商的信息
         self._sku_info, self._sku_info_encoded = self._get_sku_info()  # 得到SKU的信息
         self._inv_sku_month = self._get_month_inv_per_sku()  # 得到每个SKU每个月的库存
@@ -41,7 +41,6 @@ class Level3InvDataLoader(BaseDataLoader):
         self._inv_cus_cate2_month = self._get_month_inv_per_cus_cate2()  # 得到每个代理商每个小类的库存
         self._inv_cus_chan_month = self._get_month_inv_per_cus_chan()  # 得到每个代理商每个渠道的库存
         self._inv_cus_sales_chan_month = self._get_month_inv_per_cus_sales_chan()  # 得到每个代理商每个销售渠道的库存
-        self._all_cates = categories if categories else list(self._inv.first_cate_name.unique())
 
     def _get_all_cates(self, categories):
         if isinstance(categories, list):
@@ -95,11 +94,11 @@ class Level3InvDataLoader(BaseDataLoader):
         tmp['day'] = tmp.order_date.dt.day
         tmp = tmp.loc[tmp.day <= 15]
         tmp['order_month'] = tmp.order_date.astype(str).apply(lambda x: x[:7])
-        inv_cus_sku_month_pre15 = tmp.groupby(['customer_code', 'item_code', 'order_month'])[['ord_qty']].sum()
-        inv_cus_sku_month_pre15['ord_qty'] = inv_cus_sku_month_pre15.ord_qty.apply(lambda x: 0 if x < 0 else x)
+        inv_cus_sku_month_pre15 = tmp.groupby(['customer_code', 'item_code', 'order_month'])[['inv_qty']].sum()
+        inv_cus_sku_month_pre15['ord_qty'] = inv_cus_sku_month_pre15.inv_qty.apply(lambda x: 0 if x < 0 else x)
         inv_cus_sku_month_pre15 = inv_cus_sku_month_pre15.unstack(level=-1).fillna(0.0)
         inv_cus_sku_month_pre15.columns = pd.date_range(
-            start='2015-09-30', periods=len(inv_cus_sku_month_pre15.columns), freq='M')
+            start='2017-04-30', periods=len(inv_cus_sku_month_pre15.columns), freq='M')
         inv_cus_sku_month_pre15 = inv_cus_sku_month_pre15.reindex(self._index).fillna(0)
         return inv_cus_sku_month_pre15
 
@@ -196,7 +195,7 @@ class Level3InvDataLoader(BaseDataLoader):
     def _get_month_inv_per_cus_chan(self):
         """Get monthly inventory data per customer per channel."""
         inv_cus_chan_month = self._inv_cus_sku_month.reset_index()
-        inv_cus_chan_month['channel_id'] = self._customer_info_encoded.channel_id.values
+        inv_cus_chan_month['channel_id'] = self._sku_info_encoded.channel_id.values
         inv_cus_chan_month_index = inv_cus_chan_month[['customer_code', 'channel_id']]
         inv_cus_chan_month = inv_cus_chan_month.groupby(
             ['customer_code', 'channel_id'])[self._inv_cus_sku_month.columns].sum()
@@ -215,7 +214,7 @@ class Level3InvDataLoader(BaseDataLoader):
 
     def prepare_training_set(self, months, gap=0):
         X_train, y_train = prepare_training_set_for_level3(None, None, self._inv_cus_sku_month,
-                                                           None, None, self._inv_cus_sku_month_pre15,
+                                                           None, None, None,
                                                            None, None, self._inv_cus_cate1_month,
                                                            None, None, self._inv_cus_cate2_month,
                                                            None, None, self._inv_cus_chan_month,
@@ -229,7 +228,7 @@ class Level3InvDataLoader(BaseDataLoader):
 
     def prepare_val_set(self, pred_year, pred_month, gap=0):
         return prepare_val_set_for_level3(None, None, self._inv_cus_sku_month,
-                                          None, None, self._inv_cus_sku_month_pre15,
+                                          None, None, None,
                                           None, None, self._inv_cus_cate1_month,
                                           None, None, self._inv_cus_cate2_month,
                                           None, None, self._inv_cus_chan_month,
@@ -242,7 +241,7 @@ class Level3InvDataLoader(BaseDataLoader):
 
     def prepare_testing_set(self, pred_year, pred_month, gap=0):
         return prepare_testing_set_for_level3(None, None, self._inv_cus_sku_month,
-                                              None, None, self._inv_cus_sku_month_pre15,
+                                              None, None, None,
                                               None, None, self._inv_cus_cate1_month,
                                               None, None, self._inv_cus_cate2_month,
                                               None, None, self._inv_cus_chan_month,
