@@ -135,8 +135,7 @@ if __name__ == '__main__':
     # Update forecast result of level3 inventory
     # ============================================================================================ #
 
-    # curr_year, curr_month, _ = get_curr_date()
-    curr_year, curr_month, _ = 2019, 12, 10
+    curr_year, curr_month, _ = get_curr_date()
     gap = 1  # 更新历史，默认预测M1月
     year_upper_bound, month_upper_bound = infer_month(curr_year, curr_month, offset=-(gap + 1))
 
