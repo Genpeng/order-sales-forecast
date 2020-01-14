@@ -99,7 +99,7 @@ def update_history_for_level3_inv(level3_inv_data: Level3InvDataLoader,
 
     print()
     print("[INFO] The average accuracy is: %.2f" % (result.inv_acc.mean() * 100))
-    print("[INFO] The weighted accuracy is: %.2f" % (result.inv_weighted_acc.sum() / result.inv_ord_qty.sum() * 100))
+    print("[INFO] The weighted accuracy is: %.2f" % (result.inv_weighted_acc.sum() / result.act_inv_qty.sum() * 100))
 
     # Step 4: Write into database (Kudu)
     # ============================================================================================ #
