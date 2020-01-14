@@ -90,7 +90,7 @@ def update_history_for_level3_inv(level3_inv_data: Level3InvDataLoader,
     result['inv_pred_time'] = timestamp_to_time(time.time())
 
     add_accuracy(result, 'inv_acc', 'act_inv_qty', 'pred_inv_qty')
-    result['inv_weighted_acc'] = (result.act_ord_qty * result.inv_acc).astype(np.float32)
+    result['inv_weighted_acc'] = (result.act_inv_qty * result.inv_acc).astype(np.float32)
 
     customer_list = CustomerList()
     item_list = ItemList(start_pred_year, start_pred_month)
