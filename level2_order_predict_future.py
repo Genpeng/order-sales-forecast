@@ -70,7 +70,7 @@ def update_future_for_level2_order(model_config: Bunch,
     m1_year, m1_month = infer_month(start_pred_year, start_pred_month, 1)
 
     result = level2_data.add_index_v2(preds_test[1:])
-    preds_test_df = result.copy()  # | item_code (index) | pred_ord_qty_m1 | pred_ord_qty_m2 | pred_ord_qty_m3 |
+    m1_to_m3_res = result.copy()  # | item_code (index) | pred_ord_qty_m1 | pred_ord_qty_m2 | pred_ord_qty_m3 |
     if need_unitize:
         for col in result.columns:
             result[col] = result[col].apply(lambda x: 0.0025 if x < 0 else x)
@@ -206,38 +206,42 @@ def update_future_for_level2_order(model_config: Bunch,
                      'attribute1', 'attribute2', 'attribute3', 'attribute4', 'attribute5']]
     push_to_esb(result, esb_url)
 
+    del result
+    gc.collect()
+
     # Step 5: Process forecast result & write into "水晶球"
     # ============================================================================================ #
 
-    # df_test = level2_data.get_true_order_data(start_pred_year, start_pred_month)  # 847
-    # df_pred_test = level2_data.add_index(preds_test, start_pred_year, start_pred_month)
-    # df_pred_test_more = level2_data.predict_by_history(start_pred_year, start_pred_month, gap=periods)
-    # df_pred_test = pd.concat(
-    #     [df_pred_test, df_pred_test_more], axis=1
-    # ).stack().to_frame('pred_ord_qty')
-    # df_pred_test.index.set_names(['item_code', 'order_date'], inplace=True)
-    # if need_unitize:
-    #     df_pred_test['pred_ord_qty'] = df_pred_test.pred_ord_qty.apply(lambda x: x if x > 0 else 0.0025)
-    # else:
-    #     df_pred_test['pred_ord_qty'] = df_pred_test.pred_ord_qty.apply(lambda x: x if x > 0 else 25)
-    # df_pred_test['pred_ord_qty'] = np.round(df_pred_test.pred_ord_qty, decimals=4 if need_unitize else 0)
-    #
-    # result = df_pred_test.join(df_test, how='left').reset_index()
-    # result.act_ord_qty.fillna(0, inplace=True)  # 29964
-    #
-    # result['bu_code'] = 'M111'
-    # result['bu_name'] = '厨房热水器事业部'
-    # result['comb_name'] = 'Default'
-    #
-    # sku_info_dict = level2_data.sku_info.to_dict()
-    # result['item_name'] = result.item_code.map(sku_info_dict['item_name'])
-    # result['first_cate_code'] = result.item_code.map(sku_info_dict['first_cate_code'])
-    # result['second_cate_code'] = result.item_code.map(sku_info_dict['second_cate_code'])
-    # result['first_cate_name'] = result.item_code.map(sku_info_dict['first_cate_name'])
-    # result['second_cate_name'] = result.item_code.map(sku_info_dict['second_cate_name'])
-    # result['channel_name'] = result.item_code.map(sku_info_dict['channel_name'])
-    # result['item_price'] = result.item_code.map(sku_info_dict['item_price'])
-    #
+    df_test = level2_data.get_true_order_data(start_pred_year, start_pred_month)  # 847
+    df_preds_test = level2_data.add_index(preds_test, start_pred_year, start_pred_month)
+    df_preds_test['%d%02d' % (m1_year, m1_month)] = m1_to_m3_res['pred_ord_qty_m1']
+    df_pred_test_more = level2_data.predict_by_history(start_pred_year, start_pred_month, gap=periods)
+    df_preds_test = pd.concat(
+        [df_preds_test, df_pred_test_more], axis=1
+    ).stack().to_frame('pred_ord_qty')
+    df_preds_test.index.set_names(['item_code', 'order_date'], inplace=True)
+    if need_unitize:
+        df_preds_test['pred_ord_qty'] = df_preds_test.pred_ord_qty.apply(lambda x: x if x > 0 else 0.0025)
+    else:
+        df_preds_test['pred_ord_qty'] = df_preds_test.pred_ord_qty.apply(lambda x: x if x > 0 else 25)
+    df_preds_test['pred_ord_qty'] = np.round(df_preds_test.pred_ord_qty, decimals=4 if need_unitize else 0)
+
+    result = df_preds_test.join(df_test, how='left').reset_index()
+    result.act_ord_qty.fillna(0, inplace=True)
+
+    result['bu_code'] = 'M111'
+    result['bu_name'] = '厨房热水器事业部'
+    result['comb_name'] = 'Default'
+
+    sku_info_dict = level2_data.sku_info.to_dict()
+    result['item_name'] = result.item_code.map(sku_info_dict['item_name'])
+    result['first_cate_code'] = result.item_code.map(sku_info_dict['first_cate_code'])
+    result['second_cate_code'] = result.item_code.map(sku_info_dict['second_cate_code'])
+    result['first_cate_name'] = result.item_code.map(sku_info_dict['first_cate_name'])
+    result['second_cate_name'] = result.item_code.map(sku_info_dict['second_cate_name'])
+    result['channel_name'] = result.item_code.map(sku_info_dict['channel_name'])
+    result['item_price'] = result.item_code.map(sku_info_dict['item_price'])
+
     # m1_res = result.loc[result.order_date == "%d%02d" % (m1_year, m1_month)]
     # other_res = result.loc[~(result.order_date == "%d%02d" % (m1_year, m1_month))]
     #
@@ -291,19 +295,16 @@ def update_future_for_level2_order(model_config: Bunch,
     #
     # m1_res['pred_ord_qty'] = m1_res.pred_ord_qty * 0.5 + rule_res.pred_ord_qty_rule * 0.5
     # result = pd.concat([m1_res, other_res], axis=0)
-    #
-    # result['act_ord_amount'] = np.round(result.act_ord_qty * result.item_price, decimals=4)
-    # result['pred_ord_amount'] = np.round(result.pred_ord_qty * result.item_price, decimals=4)
-    # result['ord_pred_time'] = timestamp_to_time(time.time())
-    #
-    # result = result.loc[result.item_code.apply(lambda x: item_list.is_white_items(x))]
-    #
-    # writer = KuduResultWriter(Bunch(kudu_config))
-    # writer.clear_months_after(db_config.table1_name, 'order_date', start_pred_year, start_pred_month)
-    # writer.upsert(result, db_config.table1_name, db_config.batch_size)
-    #
-    # del result
-    # gc.collect()
+
+    result['act_ord_amount'] = np.round(result.act_ord_qty * result.item_price, decimals=4 if need_unitize else 0)
+    result['pred_ord_amount'] = np.round(result.pred_ord_qty * result.item_price, decimals=4 if need_unitize else 0)
+    result['ord_pred_time'] = timestamp_to_time(time.time())
+
+    result = result.loc[result.item_code.apply(lambda x: item_list.is_white_items(x))]
+
+    writer = KuduResultWriter(Bunch(kudu_config))
+    writer.clear_months_after(db_config.table1_name, 'order_date', start_pred_year, start_pred_month)
+    writer.upsert(result, db_config.table1_name, db_config.batch_size)
 
 
 if __name__ == '__main__':
