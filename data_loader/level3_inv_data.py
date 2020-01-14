@@ -7,16 +7,20 @@ Author: Genpeng Xu
 """
 
 import os
+import numpy as np
 import pandas as pd
+from typing import Union, List
 from sklearn.preprocessing import LabelEncoder
 
 # Own Customized modules
 from base.base_data_loader import BaseDataLoader
-from global_vars import (INV_DATA_DIR, INV_DATA_COLUMN_NAMES, SUPPORTED_CATE_NAMES, CATE_NAME_2_CATE_CODE)
 from util.data_util import transform_channel
-from util.date_util import get_days_of_month
-from util.feature_util import (prepare_training_set_for_level3, prepare_val_set_for_level3,
-                               prepare_testing_set_for_level3, modify_training_set)
+from util.date_util import get_days_of_month, infer_month
+from util.feature_util import (prepare_training_set_for_level3,
+                               prepare_val_set_for_level3,
+                               prepare_testing_set_for_level3,
+                               modify_training_set)
+from global_vars import (INV_DATA_DIR, INV_DATA_COLUMN_NAMES, SUPPORTED_CATE_NAMES, CATE_NAME_2_CATE_CODE)
 
 
 class Level3InvDataLoader(BaseDataLoader):
@@ -263,6 +267,26 @@ class Level3InvDataLoader(BaseDataLoader):
         df = df.loc[df.inv_qty > 0]
         df.rename(columns={'inv_qty': 'act_inv_qty'}, inplace=True)
         return df.reset_index() if reset_index else df
+
+    def add_index(self,
+                  preds: Union[np.ndarray, List[np.ndarray]],
+                  start_pred_year: int,
+                  start_pred_month: int) -> pd.DataFrame:
+        if isinstance(preds, np.ndarray):
+            preds = [preds]
+        months_pred = ['%d%02d' % infer_month(start_pred_year, start_pred_month, i) for i in range(len(preds))]
+        return pd.DataFrame(np.array(preds).transpose(), index=self._index, columns=months_pred)
+
+    def decorate_pred_result(self,
+                             preds: Union[np.ndarray, List[np.ndarray]],
+                             start_pred_year: int,
+                             start_pred_month: int,
+                             use_unitize: bool = True) -> pd.DataFrame:
+        df_preds = self.add_index(preds, start_pred_year, start_pred_month).stack().to_frame('pred_inv_qty')
+        df_preds.index.set_names(['customer_code', 'item_code', 'order_date'], inplace=True)
+        df_preds['pred_inv_qty'] = df_preds.pred_inv_qty.apply(lambda x: x if x > 0 else 0)
+        df_preds['pred_inv_qty'] = np.round(df_preds.pred_inv_qty, decimals=4 if use_unitize else 0)
+        return df_preds
 
     @property
     def year(self):
