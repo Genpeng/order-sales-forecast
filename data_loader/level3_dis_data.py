@@ -286,7 +286,7 @@ class Level3DisDataLoader(BaseDataLoader):
         df['order_date'] = df.order_date.astype(str).apply(lambda x: x[:4] + x[5:7])
         df = df.groupby(['customer_code', 'item_code', 'order_date'])[['dis_qty']].sum()
         df = df.loc[df.dis_qty > 0]
-        df.rename(columns={'inv_qty': 'act_inv_qty'}, inplace=True)
+        df.rename(columns={'dis_qty': 'act_dis_qty'}, inplace=True)
         return df.reset_index() if reset_index else df
 
     def add_index(self,
