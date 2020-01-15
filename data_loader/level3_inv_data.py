@@ -168,7 +168,7 @@ class Level3InvDataLoader(BaseDataLoader):
         return inv_cate1_month
 
     def _get_month_inv_per_cate2(self):
-        """Get monthly inventory data per first level category."""
+        """Get monthly inventory data per second level category."""
         inv_cate2_month = self._inv_cus_sku_month.reset_index()
         inv_cate2_month['second_cate_id'] = self._sku_info_encoded.second_cate_id.values
         inv_cate2_month_index = inv_cate2_month['second_cate_id']
