@@ -305,7 +305,7 @@ class Level3DisDataLoader(BaseDataLoader):
                              use_unitize: bool = True) -> pd.DataFrame:
         df_preds = self.add_index(preds, start_pred_year, start_pred_month).stack().to_frame('pred_dis_qty')
         df_preds.index.set_names(['customer_code', 'item_code', 'order_date'], inplace=True)
-        df_preds['pred_dis_qty'] = df_preds.pred_inv_qty.apply(lambda x: x if x > 0 else 0)
+        df_preds['pred_dis_qty'] = df_preds.pred_dis_qty.apply(lambda x: x if x > 0 else 0)
         df_preds['pred_dis_qty'] = np.round(df_preds.pred_dis_qty, decimals=4 if use_unitize else 0)
         return df_preds
 
