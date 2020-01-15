@@ -7,13 +7,13 @@ Author: Genpeng Xu
 """
 
 import time
-import datetime
 import numpy as np
 import pandas as pd
 from bunch import Bunch
+from datetime import datetime
 from typing import Union, List
 
-# Own customized modules
+# Own customized variables & modules
 from global_vars import SIT_DB_CONFIG, UAT_DB_CONFIG, PROD_DB_CONFIG
 from data_loader.level3_order_data import Level3OrderDataLoader
 from data_loader.item_list import ItemList
@@ -32,7 +32,7 @@ def update_future_for_level3_order(model_config: Bunch,
                                    periods: int = 4,
                                    categories: Union[str, List[str]] = 'all',
                                    need_unitize: bool = True) -> None:
-    """Update order future result of level1."""
+    """Update order future result of level3."""
 
     # Step 1: Read in data
     # ============================================================================================ #
@@ -141,9 +141,7 @@ if __name__ == '__main__':
     # ============================================================================================ #
 
     curr_year, curr_month, _ = get_curr_date()
-    start_dt = datetime.datetime.now()
-    data_update_dt = datetime.datetime(curr_year, curr_month, 16, 13, 0, 0)
-    if start_dt < data_update_dt:
+    if datetime.now() < datetime(curr_year, curr_month, 16, 13, 0, 0):
         raise Exception("[INFO] The data is not ready yet, please try again after 13:00 on the 16th!")
 
     model_config = Bunch(config.model_config)
