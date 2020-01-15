@@ -326,12 +326,11 @@ if __name__ == '__main__':
     # Update future result of level2 order
     # ============================================================================================ #
 
-    # curr_year, curr_month, _ = get_curr_date()
-    curr_year, curr_month, _ = 2019, 12, 10
-    # if datetime.now() < datetime(curr_year, curr_month, 16, 13, 0, 0):
-    #     raise Exception("[INFO] The data is not ready yet, please try again after 13:00 on the 16th!")
-    # if config.periods < 2:
-    #     raise Exception("[INFO] The predicted period is less than 2!!!")
+    curr_year, curr_month, _ = get_curr_date()
+    if datetime.now() < datetime(curr_year, curr_month, 16, 13, 0, 0):
+        raise Exception("[INFO] The data is not ready yet, please try again after 13:00 on the 16th!")
+    if config.periods < 2:
+        raise Exception("[INFO] The predicted period is less than 2!!!")
 
     model_config = Bunch(config.model_config)
     db_config = Bunch(config.db_config)
