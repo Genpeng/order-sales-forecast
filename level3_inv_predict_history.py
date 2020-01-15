@@ -29,7 +29,7 @@ def update_history_for_level3_inv(level3_inv_data: Level3InvDataLoader,
                                   start_pred_year: int,
                                   start_pred_month: int,
                                   gap: int,
-                                  use_unitize: bool = True) -> None:
+                                  need_unitize: bool = True) -> None:
     """Update inventory forecast result of level3 in specified month."""
 
     # Step 1: Prepare training and testing set
@@ -56,7 +56,7 @@ def update_history_for_level3_inv(level3_inv_data: Level3InvDataLoader,
     df_preds_test = level3_inv_data.decorate_pred_result(preds_test,
                                                          true_pred_year,
                                                          true_pred_month,
-                                                         use_unitize=use_unitize)
+                                                         use_unitize=need_unitize)
 
     result = df_test.join(df_preds_test, how='left').reset_index()
 
@@ -85,8 +85,8 @@ def update_history_for_level3_inv(level3_inv_data: Level3InvDataLoader,
     result['channel_name'] = result.item_code.map(sku_info_dict['channel_name'])
     result['item_price'] = result.item_code.map(sku_info_dict['item_price'])
 
-    result['act_inv_amount'] = np.round(result.act_inv_qty * result.item_price, decimals=4 if use_unitize else 0)
-    result['pred_inv_amount'] = np.round(result.pred_inv_qty * result.item_price, decimals=4 if use_unitize else 0)
+    result['act_inv_amount'] = np.round(result.act_inv_qty * result.item_price, decimals=4 if need_unitize else 0)
+    result['pred_inv_amount'] = np.round(result.pred_inv_qty * result.item_price, decimals=4 if need_unitize else 0)
     result['inv_pred_time'] = timestamp_to_time(time.time())
 
     add_accuracy(result, 'inv_acc', 'act_inv_qty', 'pred_inv_qty')
@@ -160,6 +160,6 @@ if __name__ == '__main__':
                                           start_pred_year=start_pred_year,
                                           start_pred_month=start_pred_month,
                                           gap=gap,
-                                          use_unitize=config.need_unitize)
+                                          need_unitize=config.need_unitize)
         else:
             raise Exception("[INFO] The update date is illegal!!!")
