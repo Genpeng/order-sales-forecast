@@ -1,3 +1,4 @@
+#!/bin/bash
 source activate xgp_py3
 python download_data.py
 python level1_order_predict_history.py -c configs/level1_order_predict_history_config.json
