@@ -90,22 +90,30 @@ if __name__ == '__main__':
     # uat_url = "http://10.18.104.201:50070"
     # uat_client = InsecureClient(uat_url, user='caojun1')
     # download(uat_client, ORDER_TABLE_NAME, curr_year, curr_month)
+    # uat_client = InsecureClient(uat_url, user='caojun1')
     # download(uat_client, DIS_TABLE_NAME, curr_year, curr_month)
+    # uat_client = InsecureClient(uat_url, user='caojun1')
     # download(uat_client, INV_TABLE_NAME, curr_year, curr_month)
     # if datetime.now() < datetime(curr_year, curr_month, 16, 13, 0, 0):
     #     p_y, p_m = infer_month(curr_year, curr_month, -1)
+    #     uat_client = InsecureClient(uat_url, user='caojun1')
     #     download(uat_client, PLAN_TABLE_NAME, curr_year, curr_month)
     # else:
+    #     uat_client = InsecureClient(uat_url, user='caojun1')
     #     download(uat_client, PLAN_TABLE_NAME, curr_year, curr_month)
 
-    # download from production environment
+    # Download from production environment
     prod_url = "http://10.18.104.29:50071"
     prod_client = InsecureClient(prod_url, user='caojun1')
     download(prod_client, ORDER_TABLE_NAME, curr_year, curr_month)
+    prod_client = InsecureClient(prod_url, user='caojun1')
     download(prod_client, DIS_TABLE_NAME, curr_year, curr_month)
+    prod_client = InsecureClient(prod_url, user='caojun1')
     download(prod_client, INV_TABLE_NAME, curr_year, curr_month)
     if datetime.now() < datetime(curr_year, curr_month, 16, 13, 0, 0):
         p_y, p_m = infer_month(curr_year, curr_month, -1)
+        prod_client = InsecureClient(prod_url, user='caojun1')
         download(prod_client, PLAN_TABLE_NAME, p_y, p_m)
     else:
+        prod_client = InsecureClient(prod_url, user='caojun1')
         download(prod_client, PLAN_TABLE_NAME, curr_year, curr_month)
